@@ -5,8 +5,10 @@ import (
 	"errors"
 )
 
+// PacketType indicates the type of a packet's payload.
 type PacketType string
 
+// PacketEvent is the skeleton of a packet, its payload is composed of another type or types.
 type PacketEvent struct {
 	ID    string          `json:"id"`
 	Type  PacketType      `json:"type"`
@@ -14,6 +16,7 @@ type PacketEvent struct {
 	Error string          `json:"error,omitempty"`
 }
 
+// Message is a unit of data associated with a text message sent on the service.
 type Message struct {
 	ID              string `json:"id"`
 	Parent          string `json:"parent"`
@@ -26,11 +29,13 @@ type Message struct {
 	Deleted         int    `json:"deleted,omitempty"`
 }
 
+// PingEvent encodes the server's information on when this ping occurred and when the next will.
 type PingEvent struct {
 	Time int64 `json:"time"`
 	Next int64 `json:"next"`
 }
 
+// User encodes the information about a user in the room. Name may be duplicated within a room
 type User struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -38,20 +43,26 @@ type User struct {
 	ServerEra string `json:"server_era"`
 }
 
+// SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
+// ReplyEvent is a packet type that contains a Message only.
 type ReplyEvent Message
 
+// JoinEvent is a packet type that contains a User only.
 type JoinEvent User
 
+// PartEvent is a packet type that contains a User only.
 type PartEvent User
 
+// NickEvent encodes the packet type sent when a user changes or initially sets their nick.
 type NickEvent struct {
 	ID   string `json:"id"`
 	From string `json:"from"`
 	To   string `json:"to"`
 }
 
+// SnapShotEvent is a packet that encodes the backlog of messages and userlist sent on connect.
 type SnapShotEvent struct {
 	Version   string      `json:"version"`
 	Log       []SendEvent `json:"log"`
@@ -59,8 +70,10 @@ type SnapShotEvent struct {
 	Listing   []User      `json:"listing"`
 }
 
+// NickReplyEvent is a packet type that contains a NickEvent only.
 type NickReplyEvent NickEvent
 
+// These give named constants to the packet types.
 const (
 	PingType           = "ping-event"
 	PingReplyReplyType = "ping-reply-reply"
@@ -81,6 +94,7 @@ type pingReplyReplyEvent string
 type bounceEvent string
 type authReplyEvent string
 
+// Payload unmarshals the packet payload into the proper Event type and returns it.
 func (p *PacketEvent) Payload() (interface{}, error) {
 	var payload interface{}
 	switch p.Type {

@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// DEBUG toggles DEBUG-level logging messages.
 const DEBUG = true
 
 // Handler describes functions that process packets.
@@ -133,7 +134,7 @@ func isValidSeenCommand(payload *SendEvent) bool {
 	return false
 }
 
-// SeenCommandHandler
+// SeenCommandHandler handles a send-event, checks if !seen command was given, and responds.
 func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 	if packet.Type != SendType {
 		return
@@ -163,6 +164,7 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 	}
 }
 
+// Run provides a method for setup and the main loop that the bot will run with handlers.
 func (b *Bot) Run() {
 	if b.config.ErrorLogPath != "" {
 		errorFile, err := os.OpenFile(b.config.ErrorLogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
