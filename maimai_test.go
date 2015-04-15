@@ -51,3 +51,18 @@ func TestNewBot(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestSendNickText(t *testing.T) {
+	room, err := NewRoom(&RoomConfig{"MaiMai", "[Testing]"}, &ConnConfig{"test", 5, time.Duration(1) * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = room.SendNick("MaiMai | Automated Test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = room.SendText("Automated test message.", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
