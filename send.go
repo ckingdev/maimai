@@ -16,6 +16,7 @@ func (c *Conn) sendJSON(msg interface{}) error {
 	return err
 }
 
+// SendText sends a text message to the euphoria room.
 func (r *Room) SendText(text string, parent string) error {
 	msg := map[string]interface{}{
 		"data": map[string]string{"content": r.config.MsgPrefix + text, "parent": parent},
@@ -25,6 +26,7 @@ func (r *Room) SendText(text string, parent string) error {
 	return err
 }
 
+// SendPing sends a ping-reply, used in response to a ping-event.
 func (r *Room) SendPing(time int64) error {
 	msg := map[string]interface{}{"type": "ping-reply",
 		"id": strconv.Itoa(r.data.msgID), "data": map[string]int64{
@@ -34,6 +36,7 @@ func (r *Room) SendPing(time int64) error {
 	return err
 }
 
+// SendNick sends a nick-event, setting the bot's nickname in the room.
 func (r *Room) SendNick(nick string) error {
 	msg := map[string]interface{}{
 		"type": "nick",
