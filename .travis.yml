@@ -1,0 +1,10 @@
+language: go
+
+go:
+  - 1.3
+  - tip
+
+install:
+  - go get github.com/gorilla/websocket
+
+script: cd main && go build main.go
