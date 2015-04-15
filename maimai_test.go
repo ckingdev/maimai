@@ -2,6 +2,7 @@ package maimai
 
 import (
 	"testing"
+	"time"
 )
 
 func TestIsValidSeenCommand(t *testing.T) {
@@ -27,5 +28,26 @@ func TestIsValidPingCommand(t *testing.T) {
 	invalidCmd.Content = "!seen @foobar"
 	if isValidPingCommand(&invalidCmd) {
 		t.Error("!seen @foobar evaluated as a valid command.")
+	}
+}
+
+func TestNewConn(t *testing.T) {
+	_, err := NewConn(&ConnConfig{"test", 5, time.Duration(1) * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNewRoom(t *testing.T) {
+	_, err := NewRoom(&RoomConfig{"MaiMai", "[Testing]"}, &ConnConfig{"test", 5, time.Duration(1) * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNewBot(t *testing.T) {
+	_, err := NewBot(&RoomConfig{"MaiMai", "[Testing]"}, &ConnConfig{"test", 5, time.Duration(1) * time.Second}, &BotConfig{"test.log"})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
