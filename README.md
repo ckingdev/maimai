@@ -1,5 +1,6 @@
 # maimai
-[![Build Status](https://travis-ci.org/cpalone/maimai.svg?branch=master)](https://travis-ci.org/cpalone/maimai)
+[![Build Status](https://travis-ci.org/apologue-dot-net/maimai.svg?branch=master)](https://travis-ci.org/apologue-dot-net/maimai)
+[![Coverage Status](https://coveralls.io/repos/cpalone/maimai/badge.svg?branch=master)](https://coveralls.io/r/cpalone/maimai?branch=master)
 
 Overview
 ---
