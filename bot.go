@@ -68,6 +68,13 @@ func PingEventHandler(bot *Bot, packet *PacketEvent) {
 	return
 }
 
+func isValidPingCommand(payload *SendEvent) bool {
+	if len(payload.Content) >= 5 && payload.Content[0:5] == "!ping" {
+		return true
+	}
+	return false
+}
+
 // PingCommandHandler handles a send-event, checks for a !ping, and replies.
 func PingCommandHandler(bot *Bot, packet *PacketEvent) {
 	if packet.Type != SendType {
@@ -83,7 +90,7 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent) {
 		log.Println("ERROR: Unable to assert payload as *SendEvent.")
 		return
 	}
-	if len(data.Content) >= 5 && data.Content[0:5] == "!ping" {
+	if isValidPingCommand(data) {
 		if DEBUG {
 			log.Println("DEBUG: Handling !ping command.")
 		}
@@ -117,6 +124,16 @@ func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
 	return
 }
 
+func isValidSeenCommand(payload *SendEvent) bool {
+	if len(payload.Content) >= 5 &&
+		payload.Content[0:5] == "!seen" &&
+		string(payload.Content[6]) == "@" &&
+		len(strings.Split(payload.Content, " ")) == 2 {
+		return true
+	}
+	return false
+}
+
 // SeenCommandHandler
 func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 	if packet.Type != SendType {
@@ -132,15 +149,9 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 		log.Println("ERROR: Unable to assert payload as *SendEvent.")
 		return
 	}
-	if len(data.Content) >= 5 && data.Content[0:5] == "!seen" {
+	if isValidSeenCommand(data) {
 		trimmed := strings.TrimSpace(data.Content)
 		splits := strings.Split(trimmed, " ")
-		if len(splits) != 2 {
-			if DEBUG {
-				log.Printf("Invalid seen command: %s\n", data.Content)
-			}
-			return
-		}
 		lastSeen, ok := bot.Room.data.seen[splits[1][1:]]
 		if !ok {
 			bot.Room.SendText("User has not been seen yet.", data.ID)
