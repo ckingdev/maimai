@@ -66,3 +66,17 @@ func TestSendNickText(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBotRun(t *testing.T) {
+	botCfg := &BotConfig{"errors.log"}
+	roomCfg := &RoomConfig{"MaiMai", ""}
+	connCfg := &ConnConfig{"test", 5, time.Duration(1) * time.Second}
+
+	b, err := NewBot(roomCfg, connCfg, botCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go b.Run()
+	wait := time.After(time.Second * time.Duration(10))
+	<-wait
+}
