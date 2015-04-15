@@ -77,6 +77,12 @@ func TestBotRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	go b.Run()
-	wait := time.After(time.Second * time.Duration(10))
+	secondBot, err := NewBot(&RoomConfig{"MaiMai2", ""}, connCfg, botCfg)
+	wait := time.After(time.Second * time.Duration(5))
 	<-wait
+	secondBot.Room.SendNick("MaiMai2")
+	secondBot.Room.SendText("!ping", "")
+	secondBot.Room.SendText("!seen @MaiMai2", "")
+	wait2 := time.After(time.Second * time.Duration(5))
+	<-wait2
 }
