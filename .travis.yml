@@ -7,4 +7,4 @@ go:
 install:
   - go get github.com/gorilla/websocket
 
-script: cd main && go build main.go
+script: go test
