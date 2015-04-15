@@ -90,7 +90,7 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent) {
 		log.Println("ERROR: Unable to assert payload as *SendEvent.")
 		return
 	}
-	if isValidPingCommand() {
+	if isValidPingCommand(data) {
 		if DEBUG {
 			log.Println("DEBUG: Handling !ping command.")
 		}
@@ -127,7 +127,7 @@ func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
 func isValidSeenCommand(payload *SendEvent) bool {
 	if len(payload.Content) >= 5 &&
 		payload.Content[0:5] == "!seen" &&
-		string(payload.Content[7]) == "@" &&
+		string(payload.Content[6]) == "@" &&
 		len(strings.Split(payload.Content, " ")) == 2 {
 		return true
 	}
