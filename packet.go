@@ -14,6 +14,18 @@ type PacketEvent struct {
 	Error string          `json:"error,omitempty"`
 }
 
+type Message struct {
+	ID              string `json:"id"`
+	Parent          string `json:"parent"`
+	PreviousEditID  string `json:"previous_edit_id,omitempty"`
+	Time            int    `json:"time"`
+	Sender          User   `json:"sender"`
+	Content         string `json:"content"`
+	EncryptionKeyID string `json:"encryption_key_id,omitempty"`
+	Edited          int    `json:"edited,omitempty"`
+	Deleted         int    `json:"deleted,omitempty"`
+}
+
 type PingEvent struct {
 	Time int64 `json:"time"`
 	Next int64 `json:"next"`
@@ -26,21 +38,9 @@ type User struct {
 	ServerEra string `json:"server_era"`
 }
 
-type SendEvent struct {
-	ID      string `json:"id"`
-	Parent  string `json:"parent"`
-	Time    int    `json:"time"`
-	Sender  User   `json:"sender"`
-	Content string `json:"content"`
-}
+type SendEvent Message
 
-type ReplyEvent struct {
-	ID      string `json:"id"`
-	Parent  string `json:"parent"`
-	Time    int    `json:"time"`
-	Sender  User   `json:"sender"`
-	Content string `json:"content"`
-}
+type ReplyEvent Message
 
 type JoinEvent User
 
@@ -59,11 +59,7 @@ type SnapShotEvent struct {
 	Listing   []User      `json:"listing"`
 }
 
-type NickReplyEvent struct {
-	ID   string `json:"id"`
-	From string `json:"from"`
-	To   string `json:"to"`
-}
+type NickReplyEvent NickEvent
 
 const (
 	PingType           = "ping-event"
