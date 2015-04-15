@@ -26,15 +26,3 @@ func (c *Conn) receivePacketWithRetries() (*PacketEvent, error) {
 	}
 	return packet, err
 }
-
-func (c *Conn) receivePayloadAndType() (PacketType, *interface{}, error) {
-	packet, err := c.receivePacketWithRetries()
-	if err != nil {
-		return "", nil, err
-	}
-	payload, err := packet.Payload()
-	if err != nil {
-		return "", nil, err
-	}
-	return packet.Type, &payload, nil
-}
