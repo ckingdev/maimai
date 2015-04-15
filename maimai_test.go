@@ -46,14 +46,14 @@ func TestNewRoom(t *testing.T) {
 }
 
 func TestNewBot(t *testing.T) {
-	_, err := NewBot(&RoomConfig{"MaiMai", "[Testing]"}, &ConnConfig{"test", 5, time.Duration(1) * time.Second}, &BotConfig{"test.log"})
+	_, err := NewBot(&RoomConfig{"MaiMai", "[Testing] "}, &ConnConfig{"test", 5, time.Duration(1) * time.Second}, &BotConfig{"test.log"})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSendNickText(t *testing.T) {
-	room, err := NewRoom(&RoomConfig{"MaiMai", "[Testing]"}, &ConnConfig{"test", 5, time.Duration(1) * time.Second})
+	room, err := NewRoom(&RoomConfig{"MaiMai", "[Testing] "}, &ConnConfig{"test", 5, time.Duration(1) * time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
