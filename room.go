@@ -1,7 +1,12 @@
 package maimai
 
+import (
+	"time"
+)
+
 type roomData struct {
 	msgID int
+	seen  map[string]time.Time
 }
 
 type RoomConfig struct {
@@ -20,5 +25,5 @@ func NewRoom(roomCfg *RoomConfig, connCfg *ConnConfig) (*Room, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Room{conn, &roomData{0}, roomCfg}, nil
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg}, nil
 }

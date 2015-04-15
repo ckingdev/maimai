@@ -1,12 +1,19 @@
 package maimai
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 )
 
-type Handler func(bot *Bot, packet *PacketEvent) error
+const DEBUG = true
 
+// Handler describes functions that process packets.
+type Handler func(bot *Bot, packet *PacketEvent)
+
+// Bot holds a Room, logger, config, and handlers. This is the main object.
 type Bot struct {
 	Room        *Room
 	handlers    []Handler
@@ -14,10 +21,12 @@ type Bot struct {
 	config      *BotConfig
 }
 
+// BotConfig holds the configuration for a Bot object.
 type BotConfig struct {
 	ErrorLogPath string
 }
 
+// NewBot creates a new bot with the given configurations.
 func NewBot(roomCfg *RoomConfig, connConfig *ConnConfig,
 	botConfig *BotConfig) (*Bot, error) {
 	room, err := NewRoom(roomCfg, connConfig)
@@ -27,9 +36,121 @@ func NewBot(roomCfg *RoomConfig, connConfig *ConnConfig,
 	var bot Bot
 	bot.handlers = append(bot.handlers, PingEventHandler)
 	bot.handlers = append(bot.handlers, PingCommandHandler)
+	bot.handlers = append(bot.handlers, SeenCommandHandler)
+	bot.handlers = append(bot.handlers, SeenRecordHandler)
 	bot.Room = room
 	bot.config = botConfig
 	return &bot, nil
+}
+
+// PingEventHandler processes a ping-event and replies with a ping-reply.
+func PingEventHandler(bot *Bot, packet *PacketEvent) {
+	if packet.Type != PingType {
+		return
+	}
+	if DEBUG {
+		log.Println("DEBUG: Replying to ping.")
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return
+	}
+	data, ok := payload.(*PingEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *PingEvent.")
+		return
+	}
+	err = bot.Room.SendPing(data.Time)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+	}
+	return
+}
+
+// PingCommandHandler handles a send-event, checks for a !ping, and replies.
+func PingCommandHandler(bot *Bot, packet *PacketEvent) {
+	if packet.Type != SendType {
+		return
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		return
+	}
+	if len(data.Content) >= 5 && data.Content[0:5] == "!ping" {
+		if DEBUG {
+			log.Println("DEBUG: Handling !ping command.")
+		}
+		err = bot.Room.SendText("pong!", data.ID)
+		if err != nil {
+			log.Printf("ERROR: %s\n", err)
+		}
+	}
+	return
+}
+
+// SeenRecordHandler handles a send-event and records that the sender was seen.
+func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
+	if packet.Type != SendType {
+		return
+	}
+	// TODO : refactor these two commands into a function?
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		return
+	}
+	if data.Sender.Name != "" {
+		bot.Room.data.seen[strings.Replace(data.Sender.Name, " ", "", -1)] = time.Now()
+	}
+	return
+}
+
+// SeenCommandHandler
+func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
+	if packet.Type != SendType {
+		return
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		return
+	}
+	if len(data.Content) >= 5 && data.Content[0:5] == "!seen" {
+		trimmed := strings.TrimSpace(data.Content)
+		splits := strings.Split(trimmed, " ")
+		if len(splits) != 2 {
+			if DEBUG {
+				log.Printf("Invalid seen command: %s\n", data.Content)
+			}
+			return
+		}
+		lastSeen, ok := bot.Room.data.seen[splits[1][1:]]
+		if !ok {
+			bot.Room.SendText("User has not been seen yet.", data.ID)
+			return
+		}
+		since := time.Since(lastSeen)
+		bot.Room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
+			int(since.Hours()), int(since.Minutes())), data.ID)
+		return
+	}
 }
 
 func (b *Bot) Run() {
@@ -41,8 +162,14 @@ func (b *Bot) Run() {
 		defer errorFile.Close()
 		log.SetOutput(errorFile)
 	}
+	if DEBUG {
+		log.Println("DEBUG: Setting nick.")
+	}
 	b.Room.SendNick(b.Room.config.Nick)
 	for {
+		if DEBUG {
+			log.Println("DEBUG: Handling packet.")
+		}
 		packet, err := b.Room.conn.receivePacketWithRetries()
 		if err != nil {
 			panic(err)
