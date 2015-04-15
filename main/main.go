@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cpalone/maimai"
+	"github.com/apologue-dot-net/maimai"
 )
 
 func main() {
