@@ -15,10 +15,9 @@ type Handler func(bot *Bot, packet *PacketEvent)
 
 // Bot holds a Room, logger, config, and handlers. This is the main object.
 type Bot struct {
-	Room        *Room
-	handlers    []Handler
-	DebugLogger log.Logger
-	config      *BotConfig
+	Room     *Room
+	handlers []Handler
+	config   *BotConfig
 }
 
 // BotConfig holds the configuration for a Bot object.
