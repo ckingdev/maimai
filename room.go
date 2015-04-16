@@ -17,7 +17,7 @@ type RoomConfig struct {
 
 // Room represents a connection to a euphoria room and associated data.
 type Room struct {
-	conn   *Conn
+	conn   connection
 	data   *roomData
 	config *RoomConfig
 }

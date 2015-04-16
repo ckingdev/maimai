@@ -9,6 +9,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type connection interface {
+	connect() error
+	connectWithRetries() error
+	receivePacket() (*PacketEvent, error)
+	receivePacketWithRetries() (*PacketEvent, error)
+	sendJSON(msg interface{}) error
+}
+
 // ConnConfig stores the configuration for a Conn.
 type ConnConfig struct {
 	Room       string
