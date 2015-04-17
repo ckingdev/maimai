@@ -23,10 +23,6 @@ type Room struct {
 }
 
 // NewRoom creates a new room with the given configurations.
-func NewRoom(roomCfg *RoomConfig, connCfg *ConnConfig) (*Room, error) {
-	conn, err := NewConn(connCfg)
-	if err != nil {
-		return nil, err
-	}
+func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg}, nil
 }

@@ -27,12 +27,7 @@ type BotConfig struct {
 }
 
 // NewBot creates a new bot with the given configurations.
-func NewBot(roomCfg *RoomConfig, connConfig *ConnConfig,
-	botConfig *BotConfig) (*Bot, error) {
-	room, err := NewRoom(roomCfg, connConfig)
-	if err != nil {
-		return nil, err
-	}
+func NewBot(room *Room, botConfig *BotConfig) (*Bot, error) {
 	var bot Bot
 	bot.handlers = append(bot.handlers, PingEventHandler)
 	bot.handlers = append(bot.handlers, PingCommandHandler)

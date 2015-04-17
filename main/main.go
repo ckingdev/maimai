@@ -13,7 +13,13 @@ func main() {
 	roomCfg := &maimai.RoomConfig{"MaiMai", ""}
 	connCfg := &maimai.ConnConfig{"test", 5, time.Duration(1) * time.Second}
 
-	b, err := maimai.NewBot(roomCfg, connCfg, botCfg)
+	conn, err := maimai.NewConn(connCfg)
+	if err != nil {
+		panic(err)
+	}
+	room, err := maimai.NewRoom(roomCfg, conn)
+
+	b, err := maimai.NewBot(room, botCfg)
 	if err != nil {
 		panic(err)
 	}
