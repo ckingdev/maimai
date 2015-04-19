@@ -1,5 +1,9 @@
 package maimai
 
+import (
+	"encoding/json"
+)
+
 //type connection interface {
 //	connect() error
 //	connectWithRetries() error
@@ -10,7 +14,7 @@ package maimai
 
 type mockConnection struct {
 	inbound  *(chan PacketEvent)
-	outbound *(chan interface{})
+	outbound *(chan []byte)
 }
 
 func (c mockConnection) receivePacket() (*PacketEvent, error) {
@@ -31,6 +35,10 @@ func (c mockConnection) connectWithRetries() error {
 }
 
 func (c mockConnection) sendJSON(msg interface{}) error {
-	*c.outbound <- msg
+	marshalled, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	*c.outbound <- marshalled
 	return nil
 }

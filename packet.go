@@ -32,7 +32,7 @@ type Message struct {
 // PingEvent encodes the server's information on when this ping occurred and when the next will.
 type PingEvent struct {
 	Time int64 `json:"time"`
-	Next int64 `json:"next"`
+	Next int64 `json:"next,omitempty"`
 }
 
 // User encodes the information about a user in the room. Name may be duplicated within a room
