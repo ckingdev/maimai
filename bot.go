@@ -172,7 +172,7 @@ func (b *Bot) Run() {
 	if DEBUG {
 		log.Println("DEBUG: Setting nick.")
 	}
-	b.Room.SendNick(b.Room.config.Nick)
+	//b.Room.SendNick(b.Room.config.Nick)
 	for {
 		if DEBUG {
 			log.Println("DEBUG: Handling packet.")
