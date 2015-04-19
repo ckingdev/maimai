@@ -23,5 +23,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	b.Room.SendNick(roomCfg.Nick)
 	b.Run()
 }
