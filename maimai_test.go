@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// TODO : Change all calls of panic to t.Fatal(f)
+
 func TestPingResponse(t *testing.T) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
@@ -108,5 +110,61 @@ func TestTextSend(t *testing.T) {
 		}
 	} else {
 		panic("'content' not found as payload field.")
+	}
+}
+
+func TestPingCommand(t *testing.T) {
+	inbound := make(chan PacketEvent, 1)
+	outbound := make(chan []byte, 1)
+	mockConn := mockConnection{&inbound, &outbound}
+	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
+	if err != nil {
+		panic(err)
+	}
+	bot, err := NewBot(room, &BotConfig{"testing.log"})
+	if err != nil {
+		panic(err)
+	}
+	go bot.Run()
+	time.Sleep(time.Second)
+	user := User{"0", "test", "test", "test"}
+	pingPayload := Message{ID: "1",
+		Parent:  "",
+		Time:    0,
+		Sender:  user,
+		Content: "!ping"}
+	data, err := json.Marshal(pingPayload)
+	if err != nil {
+		panic(err)
+	}
+	pingPacket := PacketEvent{ID: "0",
+		Type: "send-event",
+		Data: data}
+	inbound <- pingPacket
+	pongData := <-outbound
+	var pongPacket PacketEvent
+	if err = json.Unmarshal(pongData, &pongPacket); err != nil {
+		panic(err)
+	}
+	if pongPacket.Type != "send" {
+		panic("Type of send packet is not 'send'.")
+	}
+	pongPayload := make(map[string]string)
+	if err = json.Unmarshal(pongPacket.Data, &pongPayload); err != nil {
+		panic(err)
+	}
+	if text, ok := pongPayload["content"]; ok {
+		if text != "pong!" {
+			panic("Reply is not 'pong!'.")
+		}
+	} else {
+		panic("No content field in payload.")
+	}
+	if parent, ok := pongPayload["parent"]; ok {
+		if parent != "1" {
+			panic("Incorrect parent.")
+		}
+	} else {
+		panic("No parent field in payload.")
 	}
 }
