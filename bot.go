@@ -130,6 +130,7 @@ func isValidSeenCommand(payload *SendEvent) bool {
 }
 
 // SeenCommandHandler handles a send-event, checks if !seen command was given, and responds.
+// TODO : make seen record a time when a user joins a room or changes their nick
 func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 	if packet.Type != SendType {
 		return
