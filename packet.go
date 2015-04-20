@@ -32,7 +32,7 @@ type Message struct {
 // PingEvent encodes the server's information on when this ping occurred and when the next will.
 type PingEvent struct {
 	Time int64 `json:"time"`
-	Next int64 `json:"next,omitempty"`
+	Next int64 `json:"next"`
 }
 
 // User encodes the information about a user in the room. Name may be duplicated within a room
@@ -46,47 +46,10 @@ type User struct {
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
-// ReplyEvent is a packet type that contains a Message only.
-type ReplyEvent Message
-
-// JoinEvent is a packet type that contains a User only.
-type JoinEvent User
-
-// PartEvent is a packet type that contains a User only.
-type PartEvent User
-
-// NickEvent encodes the packet type sent when a user changes or initially sets their nick.
-type NickEvent struct {
-	ID   string `json:"id"`
-	From string `json:"from"`
-	To   string `json:"to"`
-}
-
-// SnapShotEvent is a packet that encodes the backlog of messages and userlist sent on connect.
-type SnapShotEvent struct {
-	Version   string      `json:"version"`
-	Log       []SendEvent `json:"log"`
-	SessionID string      `json:"session_id"`
-	Listing   []User      `json:"listing"`
-}
-
-// NickReplyEvent is a packet type that contains a NickEvent only.
-type NickReplyEvent NickEvent
-
 // These give named constants to the packet types.
 const (
-	PingType           = "ping-event"
-	PingReplyReplyType = "ping-reply-reply"
-	SendType           = "send-event"
-	ReplyType          = "send-reply"
-	SnapshotType       = "snapshot-event"
-	JoinType           = "join-event"
-	NickType           = "nick-event"
-	PartType           = "part-event"
-	NetworkType        = "network-event"
-	NickReplyType      = "nick-reply"
-	BounceType         = "bounce-event"
-	AuthReplyType      = "auth-reply"
+	PingType = "ping-event"
+	SendType = "send-event"
 )
 
 type networkEvent string
@@ -102,18 +65,6 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &PingEvent{}
 	case SendType:
 		payload = &SendEvent{}
-	case ReplyType:
-		payload = &ReplyEvent{}
-	case SnapshotType:
-		payload = &SnapShotEvent{}
-	case JoinType:
-		payload = &JoinEvent{}
-	case NickType:
-		payload = &NickEvent{}
-	case PartType:
-		payload = &PartEvent{}
-	case NickReplyType:
-		payload = &NickReplyEvent{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}
