@@ -21,7 +21,7 @@ type Message struct {
 	ID              string `json:"id"`
 	Parent          string `json:"parent"`
 	PreviousEditID  string `json:"previous_edit_id,omitempty"`
-	Time            int    `json:"time"`
+	Time            int64  `json:"time"`
 	Sender          User   `json:"sender"`
 	Content         string `json:"content"`
 	EncryptionKeyID string `json:"encryption_key_id,omitempty"`
