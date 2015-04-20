@@ -80,3 +80,33 @@ func TestNickSend(t *testing.T) {
 		panic("'nick' not found as payload field.")
 	}
 }
+
+func TestTextSend(t *testing.T) {
+	inbound := make(chan PacketEvent, 1)
+	outbound := make(chan []byte, 1)
+	mockConn := mockConnection{&inbound, &outbound}
+	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
+	if err != nil {
+		panic(err)
+	}
+	room.SendText("test text", "parent")
+	textPacketRaw := <-outbound
+	var textPacketEvent PacketEvent
+	if err = json.Unmarshal(textPacketRaw, &textPacketEvent); err != nil {
+		panic(err)
+	}
+	if textPacketEvent.Type != "send" {
+		panic("Type of send packet is not 'send'.")
+	}
+	textPayload := make(map[string]string)
+	if err = json.Unmarshal(textPacketEvent.Data, &textPayload); err != nil {
+		panic(err)
+	}
+	if text, ok := textPayload["content"]; ok {
+		if text != "test text" {
+			panic("Incorrect text.")
+		}
+	} else {
+		panic("'content' not found as payload field.")
+	}
+}
