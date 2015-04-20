@@ -37,10 +37,10 @@ type PingEvent struct {
 
 // User encodes the information about a user in the room. Name may be duplicated within a room
 type User struct {
-	ID        string `json:"id"`
+	ID        string `json:"id,omitempty"`
 	Name      string `json:"name"`
-	ServerID  string `json:"server_id"`
-	ServerEra string `json:"server_era"`
+	ServerID  string `json:"server_id,omitempty"`
+	ServerEra string `json:"server_era,omitempty"`
 }
 
 // SendEvent is a packet type that contains a Message only.
