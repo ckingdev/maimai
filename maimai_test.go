@@ -15,11 +15,11 @@ func TestPingResponse(t *testing.T) {
 	mockConn := mockConnection{&inbound, &outbound}
 	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating room: %s\n", err)
 	}
 	b, err := NewBot(room, &BotConfig{"testing.log"})
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating bot: %s\n", err)
 	}
 	go b.Run()
 	timeSent := time.Now().Unix()
@@ -30,7 +30,7 @@ func TestPingResponse(t *testing.T) {
 		Next: timeSent + 30}
 	serial, err := json.Marshal(payload)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error marshalling ping-event payload: %s\n", err)
 	}
 	packet.Data = serial
 	inbound <- packet
@@ -38,18 +38,18 @@ func TestPingResponse(t *testing.T) {
 	pingReplyI := <-outbound
 	var pingReplyPE PacketEvent
 	if err = json.Unmarshal(pingReplyI, &pingReplyPE); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling ping-reply packet-event: %s\n", err)
 	}
 	if pingReplyPE.Type != "ping-reply" {
 		fmt.Println(pingReplyPE.Type)
-		panic("Type of ping reply is not 'ping-reply'.")
+		t.Fatal("Type of ping reply is not 'ping-reply'.")
 	}
 	var payloadReply PingEvent
 	if err = json.Unmarshal(pingReplyPE.Data, &payloadReply); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling reply payload: %s\n", err)
 	}
 	if payloadReply.Time != timeSent {
-		panic("Mismatch between time in inbound and outbound packets.")
+		t.Fatal("Mismatch between time in inbound and outbound packets.")
 	}
 }
 
@@ -59,27 +59,28 @@ func TestNickSend(t *testing.T) {
 	mockConn := mockConnection{&inbound, &outbound}
 	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating room: %s\n", err)
 	}
 	room.SendNick(room.config.Nick)
 	nickPacketRaw := <-outbound
 	var nickPacketEvent PacketEvent
 	if err = json.Unmarshal(nickPacketRaw, &nickPacketEvent); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling nick packet: %s\n", err)
 	}
 	if nickPacketEvent.Type != "nick" {
-		panic("Type of nick packet is not 'nick'.")
+		t.Fatal("Type of nick packet is not 'nick'. Expected nick, got %s",
+			nickPacketEvent.Type)
 	}
 	nickPayload := make(map[string]string)
 	if err = json.Unmarshal(nickPacketEvent.Data, &nickPayload); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling nick payload: %s\n", err)
 	}
 	if nick, ok := nickPayload["name"]; ok {
 		if nick != "MaiMai" {
-			panic("Incorrect nick.")
+			t.Fatal("Incorrect nick. Expected MaiMai, got %s", nick)
 		}
 	} else {
-		panic("'nick' not found as payload field.")
+		t.Fatal("'nick' not found as payload field.")
 	}
 }
 
