@@ -168,3 +168,20 @@ func TestPingCommand(t *testing.T) {
 		t.Fatal("No parent field in payload.")
 	}
 }
+
+func TestSeenCommand(t *testing.T) {
+	bot, inbound, outbound := NewTestBot()
+	go bot.Run()
+	seenPacket := CreateTestSendEvent("!seen @xyz", "", "1")
+	*inbound <- seenPacket
+	time.Sleep(time.Second)
+	seenResp := <-*outbound
+	_, seenPayload := ReceiveSendPacket(seenResp)
+	if text, ok := (*seenPayload)["content"]; ok {
+		if text != "User has not been seen yet." {
+			t.Fatalf("Incorrect response to '!seen xyz: expected User has not been seen yet.', got %s\n", text)
+		}
+	} else {
+		t.Fatal("No content field in payload.")
+	}
+}
