@@ -116,7 +116,8 @@ func TestNickSend(t *testing.T) {
 	if err = json.Unmarshal(nickPacketEvent.Data, &nickPayload); err != nil {
 		t.Fatalf("Error unmarshalling nick payload: %s\n", err)
 	}
-	if nick, ok := nickPayload["name"]; ok {
+	nick, ok := nickPayload["name"]
+	if ok {
 		if nick != "MaiMai" {
 			t.Fatalf("Incorrect nick. Expected MaiMai, got %s\n", nick)
 		}
@@ -136,7 +137,8 @@ func TestTextSend(t *testing.T) {
 	room.SendText("test text", "parent")
 	textPacketRaw := <-outbound
 	_, textPayload := ReceiveSendPacket(textPacketRaw)
-	if text, ok := (*textPayload)["content"]; ok {
+	text, ok := (*textPayload)["content"]
+	if ok {
 		if text != "test text" {
 			t.Fatalf("Incorrect text. Expected 'test text', got '%s'\n", text)
 		}
@@ -153,14 +155,16 @@ func TestPingCommand(t *testing.T) {
 	*inbound <- pingPacket
 	pongData := <-*outbound
 	_, pongPayload := ReceiveSendPacket(pongData)
-	if text, ok := (*pongPayload)["content"]; ok {
+	text, ok := (*pongPayload)["content"]
+	if ok {
 		if text != "pong!" {
 			t.Fatalf("Reply is not 'pong!'. Got %s\n", text)
 		}
 	} else {
 		t.Fatal("No content field in payload.")
 	}
-	if parent, ok := (*pongPayload)["parent"]; ok {
+	parent, ok := (*pongPayload)["parent"]
+	if ok {
 		if parent != "1" {
 			t.Fatalf("Incorrect parent. Expected 1, got %s\n", parent)
 		}
@@ -177,7 +181,8 @@ func TestSeenCommand(t *testing.T) {
 	*inbound <- seenPacket
 	seenResp := <-*outbound
 	_, seenPayload := ReceiveSendPacket(seenResp)
-	if text, ok := (*seenPayload)["content"]; ok {
+	text, ok := (*seenPayload)["content"]
+	if ok {
 		if text != "User has not been seen yet." {
 			t.Fatalf("Incorrect response to '!seen xyz: expected User has not been seen yet.', got %s\n", text)
 		}
@@ -188,7 +193,8 @@ func TestSeenCommand(t *testing.T) {
 	*inbound <- seenPacket
 	seenResp = <-*outbound
 	_, seenPayload = ReceiveSendPacket(seenResp)
-	if text, ok := (*seenPayload)["content"]; ok {
+	text, ok = (*seenPayload)["content"]
+	if ok {
 		if text == "User has not been seen yet." {
 			t.Fatal("Bot did not record that user was seen.")
 		}
