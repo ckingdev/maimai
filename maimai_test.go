@@ -38,6 +38,28 @@ func ReceiveSendPacket(data []byte) (*PacketEvent, *map[string]string) {
 	return &textPacketEvent, &textPayload
 }
 
+func CreateTestSendEvent(text string, parent string, ID string) PacketEvent {
+	sender := User{ID: "0",
+		Name:      "testUser",
+		ServerID:  "0",
+		ServerEra: "0"}
+	payload := SendEvent{
+		ID:      ID,
+		Parent:  parent,
+		Time:    time.Now().Unix(),
+		Sender:  sender,
+		Content: text}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		panic(fmt.Sprintf("Error marshalling payload: %s\n", err))
+	}
+	packet := PacketEvent{
+		ID:   "0",
+		Type: "send-event",
+		Data: payloadJSON}
+	return packet
+}
+
 func TestPingResponse(t *testing.T) {
 	b, inbound, outbound := NewTestBot()
 	go b.Run()
@@ -127,19 +149,7 @@ func TestPingCommand(t *testing.T) {
 	bot, inbound, outbound := NewTestBot()
 	go bot.Run()
 	time.Sleep(time.Second)
-	user := User{"0", "test", "test", "test"}
-	pingPayload := Message{ID: "1",
-		Parent:  "",
-		Time:    0,
-		Sender:  user,
-		Content: "!ping"}
-	data, err := json.Marshal(pingPayload)
-	if err != nil {
-		t.Fatalf("Error marshalling send-event: %s\n", err)
-	}
-	pingPacket := PacketEvent{ID: "0",
-		Type: "send-event",
-		Data: data}
+	pingPacket := CreateTestSendEvent("!ping", "", "1")
 	*inbound <- pingPacket
 	pongData := <-*outbound
 	_, pongPayload := ReceiveSendPacket(pongData)
