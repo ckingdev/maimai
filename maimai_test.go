@@ -77,10 +77,10 @@ func TestNickSend(t *testing.T) {
 	}
 	if nick, ok := nickPayload["name"]; ok {
 		if nick != "MaiMai" {
-			t.Fatal("Incorrect nick. Expected MaiMai, got %s", nick)
+			t.Fatal("Incorrect nick. Expected MaiMai, got %s\n", nick)
 		}
 	} else {
-		t.Fatal("'nick' not found as payload field.")
+		t.Fatal("'nick' not found as payload field.\n")
 	}
 }
 
@@ -90,27 +90,28 @@ func TestTextSend(t *testing.T) {
 	mockConn := mockConnection{&inbound, &outbound}
 	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating room: %s\n", err)
 	}
 	room.SendText("test text", "parent")
 	textPacketRaw := <-outbound
 	var textPacketEvent PacketEvent
 	if err = json.Unmarshal(textPacketRaw, &textPacketEvent); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling send packet: %s\n", err)
 	}
 	if textPacketEvent.Type != "send" {
-		panic("Type of send packet is not 'send'.")
+		t.Fatalf("Type of send packet is not 'send'. Expected send, got %s\n",
+			textPacketEvent.Type)
 	}
 	textPayload := make(map[string]string)
 	if err = json.Unmarshal(textPacketEvent.Data, &textPayload); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling send payload: %s\n", err)
 	}
 	if text, ok := textPayload["content"]; ok {
 		if text != "test text" {
-			panic("Incorrect text.")
+			t.Fatalf("Incorrect text. Expected 'test text', got '%s'\n")
 		}
 	} else {
-		panic("'content' not found as payload field.")
+		t.Fatal("'content' not found as payload field.")
 	}
 }
 
@@ -120,11 +121,11 @@ func TestPingCommand(t *testing.T) {
 	mockConn := mockConnection{&inbound, &outbound}
 	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating room: %s\n", err)
 	}
 	bot, err := NewBot(room, &BotConfig{"testing.log"})
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error creating bot: %s\n", err)
 	}
 	go bot.Run()
 	time.Sleep(time.Second)
@@ -136,7 +137,7 @@ func TestPingCommand(t *testing.T) {
 		Content: "!ping"}
 	data, err := json.Marshal(pingPayload)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error marshalling send-event: %s\n", err)
 	}
 	pingPacket := PacketEvent{ID: "0",
 		Type: "send-event",
@@ -145,27 +146,28 @@ func TestPingCommand(t *testing.T) {
 	pongData := <-outbound
 	var pongPacket PacketEvent
 	if err = json.Unmarshal(pongData, &pongPacket); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling pong packet: %s\n", err)
 	}
 	if pongPacket.Type != "send" {
-		panic("Type of send packet is not 'send'.")
+		t.Fatalf("Type of send packet is not 'send'. Expected send, got %s",
+			pongPacket.Type)
 	}
 	pongPayload := make(map[string]string)
 	if err = json.Unmarshal(pongPacket.Data, &pongPayload); err != nil {
-		panic(err)
+		t.Fatalf("Error unmarshalling pong payload: %s\n", err)
 	}
 	if text, ok := pongPayload["content"]; ok {
 		if text != "pong!" {
-			panic("Reply is not 'pong!'.")
+			t.Fatalf("Reply is not 'pong!'. Got %s\n", text)
 		}
 	} else {
-		panic("No content field in payload.")
+		t.Fatal("No content field in payload.")
 	}
 	if parent, ok := pongPayload["parent"]; ok {
 		if parent != "1" {
-			panic("Incorrect parent.")
+			t.Fatalf("Incorrect parent. Expected 1, got %s\n", parent)
 		}
 	} else {
-		panic("No parent field in payload.")
+		t.Fatal("No parent field in payload.")
 	}
 }
