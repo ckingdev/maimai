@@ -1,8 +1,11 @@
 package maimai
 
 import (
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/boltdb/bolt"
 )
 
 type roomData struct {
@@ -14,6 +17,7 @@ type roomData struct {
 type RoomConfig struct {
 	Nick      string
 	MsgPrefix string
+	DBPath    string
 }
 
 // Room represents a connection to a euphoria room and associated data.
@@ -21,11 +25,18 @@ type Room struct {
 	conn   connection
 	data   *roomData
 	config *RoomConfig
+	db     *bolt.DB
 }
 
 // NewRoom creates a new room with the given configurations.
 func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
-	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg}, nil
+	log.Println("Creating/opening db...")
+	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
+	log.Println("Opened db.")
+	if err != nil {
+		return nil, err
+	}
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db}, nil
 }
 
 // SendText sends a text message to the euphoria room.

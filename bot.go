@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/boltdb/bolt"
 )
 
 // DEBUG toggles DEBUG-level logging messages.
@@ -98,12 +101,49 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent) {
 	return
 }
 
+func (r *Room) storeSeen(user string, time int64) error {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = r.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Seen"))
+		b.Put([]byte(user), []byte(strconv.FormatInt(time, 10)))
+		return nil
+	})
+	return err
+}
+
+func (r *Room) retrieveSeen(user string) ([]byte, error) {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	var t []byte
+	err = r.db.View(func(tx *bolt.Tx) error {
+		t = tx.Bucket([]byte("Seen")).Get([]byte(user))
+		return nil
+	})
+	return t, err
+}
+
 // SeenRecordHandler handles a send-event and records that the sender was seen.
 func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
 	if packet.Type != SendType {
 		return
 	}
-	// TODO : refactor these two commands into a function?
 	payload, err := packet.Payload()
 	if err != nil {
 		log.Printf("ERROR: %s\n", err)
@@ -114,9 +154,13 @@ func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
 		log.Println("ERROR: Unable to assert payload as *SendEvent.")
 		return
 	}
-	if data.Sender.Name != "" {
-		bot.Room.data.seen[strings.Replace(data.Sender.Name, " ", "", -1)] = time.Now()
-	}
+	user := strings.Replace(data.Sender.Name, " ", "", -1)
+	t := time.Now().Unix()
+	err = bot.Room.storeSeen(user, t)
+	//	if data.Sender.Name != "" {
+	//		bot.Room.data.seen[strings.Replace(data.Sender.Name, " ", "", -1)] = time.Now()
+	//	}
+
 	return
 }
 
@@ -149,12 +193,20 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 	if isValidSeenCommand(data) {
 		trimmed := strings.TrimSpace(data.Content)
 		splits := strings.Split(trimmed, " ")
-		lastSeen, ok := bot.Room.data.seen[splits[1][1:]]
-		if !ok {
+		lastSeen, err := bot.Room.retrieveSeen(splits[1][1:])
+		if err != nil {
+			panic(err)
+		}
+		if lastSeen == nil {
 			bot.Room.SendText("User has not been seen yet.", data.ID)
 			return
 		}
-		since := time.Since(lastSeen)
+		lastSeenInt, err := strconv.Atoi(string(lastSeen))
+		if err != nil {
+			panic(err)
+		}
+		lastSeenTime := time.Unix(int64(lastSeenInt), 0)
+		since := time.Since(lastSeenTime)
 		bot.Room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
 			int(since.Hours()), int(since.Minutes())), data.ID)
 		return
