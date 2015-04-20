@@ -2,6 +2,7 @@ package maimai
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"time"
@@ -71,4 +72,70 @@ func NewConn(connCfg *ConnConfig) (*Conn, error) {
 		return nil, err
 	}
 	return &conn, nil
+}
+
+func (c *Conn) sendJSON(msg interface{}) error {
+
+	if err := c.ws.WriteJSON(msg); err != nil {
+		if err = c.connectWithRetries(); err != nil {
+			return err
+		}
+		err := c.ws.WriteJSON(msg)
+		return err
+	}
+	return nil
+}
+
+func (c *Conn) receivePacket() (*PacketEvent, error) {
+	_, msg, err := c.ws.ReadMessage()
+	var packet PacketEvent
+
+	if err = json.Unmarshal(msg, &packet); err != nil {
+		return &PacketEvent{}, err
+	}
+	return &packet, nil
+}
+
+func (c *Conn) receivePacketWithRetries() (*PacketEvent, error) {
+	packet, err := c.receivePacket()
+	if err != nil {
+		for i := 0; i < c.cfg.Retries; i++ {
+			packet, err = c.receivePacket()
+			if err == nil {
+				break
+			}
+		}
+	}
+	return packet, err
+}
+
+type mockConnection struct {
+	inbound  *(chan PacketEvent)
+	outbound *(chan []byte)
+}
+
+func (c mockConnection) receivePacket() (*PacketEvent, error) {
+	packet := <-*(c.inbound)
+	return &packet, nil
+}
+
+func (c mockConnection) receivePacketWithRetries() (*PacketEvent, error) {
+	return c.receivePacket()
+}
+
+func (c mockConnection) connect() error {
+	return nil
+}
+
+func (c mockConnection) connectWithRetries() error {
+	return nil
+}
+
+func (c mockConnection) sendJSON(msg interface{}) error {
+	marshalled, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	*c.outbound <- marshalled
+	return nil
 }
