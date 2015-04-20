@@ -7,20 +7,39 @@ import (
 	"time"
 )
 
-// TODO : Change all calls of panic to t.Fatal(f)
-
-func TestPingResponse(t *testing.T) {
+func NewTestBot() (*Bot, *chan PacketEvent, *chan []byte) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
 	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
 	if err != nil {
-		t.Fatalf("Error creating room: %s\n", err)
+		panic(fmt.Sprintf("Error creating room: %s\n", err))
 	}
 	b, err := NewBot(room, &BotConfig{"testing.log"})
 	if err != nil {
-		t.Fatalf("Error creating bot: %s\n", err)
+		panic(fmt.Sprintf("Error creating bot: %s\n", err))
 	}
+	return b, &inbound, &outbound
+}
+
+func ReceiveSendPacket(data []byte) (*PacketEvent, *map[string]string) {
+	var textPacketEvent PacketEvent
+	if err := json.Unmarshal(data, &textPacketEvent); err != nil {
+		panic(fmt.Sprintf("Error unmarshalling send packet: %s\n", err))
+	}
+	if textPacketEvent.Type != "send" {
+		panic(fmt.Sprintf("Type of send packet is not 'send'. Expected send, got %s\n",
+			textPacketEvent.Type))
+	}
+	textPayload := make(map[string]string)
+	if err := json.Unmarshal(textPacketEvent.Data, &textPayload); err != nil {
+		panic(fmt.Sprintf("Error unmarshalling send payload: %s\n", err))
+	}
+	return &textPacketEvent, &textPayload
+}
+
+func TestPingResponse(t *testing.T) {
+	b, inbound, outbound := NewTestBot()
 	go b.Run()
 	timeSent := time.Now().Unix()
 	packet := PacketEvent{ID: "0",
@@ -33,9 +52,9 @@ func TestPingResponse(t *testing.T) {
 		t.Fatalf("Error marshalling ping-event payload: %s\n", err)
 	}
 	packet.Data = serial
-	inbound <- packet
+	*inbound <- packet
 	time.Sleep(time.Second)
-	pingReplyI := <-outbound
+	pingReplyI := <-*outbound
 	var pingReplyPE PacketEvent
 	if err = json.Unmarshal(pingReplyI, &pingReplyPE); err != nil {
 		t.Fatalf("Error unmarshalling ping-reply packet-event: %s\n", err)
@@ -94,19 +113,8 @@ func TestTextSend(t *testing.T) {
 	}
 	room.SendText("test text", "parent")
 	textPacketRaw := <-outbound
-	var textPacketEvent PacketEvent
-	if err = json.Unmarshal(textPacketRaw, &textPacketEvent); err != nil {
-		t.Fatalf("Error unmarshalling send packet: %s\n", err)
-	}
-	if textPacketEvent.Type != "send" {
-		t.Fatalf("Type of send packet is not 'send'. Expected send, got %s\n",
-			textPacketEvent.Type)
-	}
-	textPayload := make(map[string]string)
-	if err = json.Unmarshal(textPacketEvent.Data, &textPayload); err != nil {
-		t.Fatalf("Error unmarshalling send payload: %s\n", err)
-	}
-	if text, ok := textPayload["content"]; ok {
+	_, textPayload := ReceiveSendPacket(textPacketRaw)
+	if text, ok := (*textPayload)["content"]; ok {
 		if text != "test text" {
 			t.Fatalf("Incorrect text. Expected 'test text', got '%s'\n")
 		}
@@ -116,17 +124,7 @@ func TestTextSend(t *testing.T) {
 }
 
 func TestPingCommand(t *testing.T) {
-	inbound := make(chan PacketEvent, 1)
-	outbound := make(chan []byte, 1)
-	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
-	if err != nil {
-		t.Fatalf("Error creating room: %s\n", err)
-	}
-	bot, err := NewBot(room, &BotConfig{"testing.log"})
-	if err != nil {
-		t.Fatalf("Error creating bot: %s\n", err)
-	}
+	bot, inbound, outbound := NewTestBot()
 	go bot.Run()
 	time.Sleep(time.Second)
 	user := User{"0", "test", "test", "test"}
@@ -142,28 +140,17 @@ func TestPingCommand(t *testing.T) {
 	pingPacket := PacketEvent{ID: "0",
 		Type: "send-event",
 		Data: data}
-	inbound <- pingPacket
-	pongData := <-outbound
-	var pongPacket PacketEvent
-	if err = json.Unmarshal(pongData, &pongPacket); err != nil {
-		t.Fatalf("Error unmarshalling pong packet: %s\n", err)
-	}
-	if pongPacket.Type != "send" {
-		t.Fatalf("Type of send packet is not 'send'. Expected send, got %s",
-			pongPacket.Type)
-	}
-	pongPayload := make(map[string]string)
-	if err = json.Unmarshal(pongPacket.Data, &pongPayload); err != nil {
-		t.Fatalf("Error unmarshalling pong payload: %s\n", err)
-	}
-	if text, ok := pongPayload["content"]; ok {
+	*inbound <- pingPacket
+	pongData := <-*outbound
+	_, pongPayload := ReceiveSendPacket(pongData)
+	if text, ok := (*pongPayload)["content"]; ok {
 		if text != "pong!" {
 			t.Fatalf("Reply is not 'pong!'. Got %s\n", text)
 		}
 	} else {
 		t.Fatal("No content field in payload.")
 	}
-	if parent, ok := pongPayload["parent"]; ok {
+	if parent, ok := (*pongPayload)["parent"]; ok {
 		if parent != "1" {
 			t.Fatalf("Incorrect parent. Expected 1, got %s\n", parent)
 		}
