@@ -67,8 +67,7 @@ func (c *Conn) connectWithRetries() error {
 // connCfg: configuration for the new connection to use.
 func NewConn(connCfg *ConnConfig) (*Conn, error) {
 	conn := Conn{nil, connCfg}
-	err := conn.connectWithRetries()
-	if err != nil {
+	if err := conn.connectWithRetries(); err != nil {
 		return nil, err
 	}
 	return &conn, nil

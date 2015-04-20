@@ -5,15 +5,15 @@ import (
 )
 
 func (c *Conn) sendJSON(msg interface{}) error {
-	err := c.ws.WriteJSON(msg)
-	if err != nil {
-		err = c.connectWithRetries()
-		if err != nil {
+
+	if err := c.ws.WriteJSON(msg); err != nil {
+		if err = c.connectWithRetries(); err != nil {
 			return err
 		}
-		err = c.ws.WriteJSON(msg)
+		err := c.ws.WriteJSON(msg)
+		return err
 	}
-	return err
+	return nil
 }
 
 // SendText sends a text message to the euphoria room.

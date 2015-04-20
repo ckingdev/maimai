@@ -56,8 +56,8 @@ func PingEventHandler(bot *Bot, packet *PacketEvent) {
 		log.Println("ERROR: Unable to assert payload as *PingEvent.")
 		return
 	}
-	err = bot.Room.SendPing(data.Time)
-	if err != nil {
+
+	if err = bot.Room.SendPing(data.Time); err != nil {
 		log.Printf("ERROR: %s\n", err)
 	}
 	return
@@ -89,8 +89,8 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent) {
 		if DEBUG {
 			log.Println("DEBUG: Handling !ping command.")
 		}
-		err = bot.Room.SendText("pong!", data.ID)
-		if err != nil {
+
+		if err = bot.Room.SendText("pong!", data.ID); err != nil {
 			log.Printf("ERROR: %s\n", err)
 		}
 	}

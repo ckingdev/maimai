@@ -7,8 +7,8 @@ import (
 func (c *Conn) receivePacket() (*PacketEvent, error) {
 	_, msg, err := c.ws.ReadMessage()
 	var packet PacketEvent
-	err = json.Unmarshal(msg, &packet)
-	if err != nil {
+
+	if err = json.Unmarshal(msg, &packet); err != nil {
 		return &PacketEvent{}, err
 	}
 	return &packet, nil
