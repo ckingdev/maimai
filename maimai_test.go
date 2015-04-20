@@ -172,14 +172,25 @@ func TestPingCommand(t *testing.T) {
 func TestSeenCommand(t *testing.T) {
 	bot, inbound, outbound := NewTestBot()
 	go bot.Run()
+	time.Sleep(time.Second)
 	seenPacket := CreateTestSendEvent("!seen @xyz", "", "1")
 	*inbound <- seenPacket
-	time.Sleep(time.Second)
 	seenResp := <-*outbound
 	_, seenPayload := ReceiveSendPacket(seenResp)
 	if text, ok := (*seenPayload)["content"]; ok {
 		if text != "User has not been seen yet." {
 			t.Fatalf("Incorrect response to '!seen xyz: expected User has not been seen yet.', got %s\n", text)
+		}
+	} else {
+		t.Fatal("No content field in payload.")
+	}
+	seenPacket = CreateTestSendEvent("!seen @testUser", "", "2")
+	*inbound <- seenPacket
+	seenResp = <-*outbound
+	_, seenPayload = ReceiveSendPacket(seenResp)
+	if text, ok := (*seenPayload)["content"]; ok {
+		if text == "User has not been seen yet." {
+			t.Fatal("Bot did not record that user was seen.")
 		}
 	} else {
 		t.Fatal("No content field in payload.")
