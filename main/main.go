@@ -18,7 +18,10 @@ func main() {
 		panic(err)
 	}
 	room, err := maimai.NewRoom(roomCfg, conn)
-
+	if err != nil {
+		panic(err)
+	}
+	err = room.SendNick("MaiMai")
 	b, err := maimai.NewBot(room, botCfg)
 	if err != nil {
 		panic(err)
