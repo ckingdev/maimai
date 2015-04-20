@@ -29,6 +29,7 @@ type BotConfig struct {
 // NewBot creates a new bot with the given configurations.
 func NewBot(room *Room, botConfig *BotConfig) (*Bot, error) {
 	var bot Bot
+	// TODO : change this to read handler config from file
 	bot.handlers = append(bot.handlers, PingEventHandler)
 	bot.handlers = append(bot.handlers, PingCommandHandler)
 	bot.handlers = append(bot.handlers, SeenCommandHandler)
@@ -173,7 +174,6 @@ func (b *Bot) Run() {
 	if DEBUG {
 		log.Println("DEBUG: Setting nick.")
 	}
-	//b.Room.SendNick(b.Room.config.Nick)
 	for {
 		if DEBUG {
 			log.Println("DEBUG: Handling packet.")

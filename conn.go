@@ -49,8 +49,7 @@ func (c *Conn) connect() error {
 }
 
 func (c *Conn) connectWithRetries() error {
-	err := c.connect()
-	if err != nil {
+	if err := c.connect(); err != nil {
 		for i := 0; i < c.cfg.Retries; i++ {
 			time.Sleep(c.cfg.RetrySleep)
 			err = c.connect()
@@ -58,8 +57,9 @@ func (c *Conn) connectWithRetries() error {
 				break
 			}
 		}
+		return err
 	}
-	return err
+	return nil
 }
 
 // NewConn returns a new websocket connection to a room.
@@ -75,8 +75,8 @@ func NewConn(connCfg *ConnConfig) (*Conn, error) {
 }
 
 func (c *Conn) sendJSON(msg interface{}) error {
-
 	if err := c.ws.WriteJSON(msg); err != nil {
+		// Reconnect and try again
 		if err = c.connectWithRetries(); err != nil {
 			return err
 		}
