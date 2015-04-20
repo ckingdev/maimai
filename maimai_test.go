@@ -87,7 +87,7 @@ func TestNickSend(t *testing.T) {
 		t.Fatalf("Error unmarshalling nick packet: %s\n", err)
 	}
 	if nickPacketEvent.Type != "nick" {
-		t.Fatal("Type of nick packet is not 'nick'. Expected nick, got %s",
+		t.Fatalf("Type of nick packet is not 'nick'. Expected nick, got %s",
 			nickPacketEvent.Type)
 	}
 	nickPayload := make(map[string]string)
@@ -96,7 +96,7 @@ func TestNickSend(t *testing.T) {
 	}
 	if nick, ok := nickPayload["name"]; ok {
 		if nick != "MaiMai" {
-			t.Fatal("Incorrect nick. Expected MaiMai, got %s\n", nick)
+			t.Fatalf("Incorrect nick. Expected MaiMai, got %s\n", nick)
 		}
 	} else {
 		t.Fatal("'nick' not found as payload field.\n")
@@ -116,7 +116,7 @@ func TestTextSend(t *testing.T) {
 	_, textPayload := ReceiveSendPacket(textPacketRaw)
 	if text, ok := (*textPayload)["content"]; ok {
 		if text != "test text" {
-			t.Fatalf("Incorrect text. Expected 'test text', got '%s'\n")
+			t.Fatalf("Incorrect text. Expected 'test text', got '%s'\n", text)
 		}
 	} else {
 		t.Fatal("'content' not found as payload field.")

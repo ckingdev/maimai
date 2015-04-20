@@ -52,11 +52,6 @@ const (
 	SendType = "send-event"
 )
 
-type networkEvent string
-type pingReplyReplyEvent string
-type bounceEvent string
-type authReplyEvent string
-
 // Payload unmarshals the packet payload into the proper Event type and returns it.
 func (p *PacketEvent) Payload() (interface{}, error) {
 	var payload interface{}
