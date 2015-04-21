@@ -39,7 +39,13 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, make([]Handler, 0)}, nil
+	handlers := make([]Handler, 0)
+	// TODO : change this to read handler config from file
+	handlers = append(handlers, PingEventHandler)
+	handlers = append(handlers, PingCommandHandler)
+	handlers = append(handlers, SeenCommandHandler)
+	handlers = append(handlers, SeenRecordHandler)
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers}, nil
 }
 
 // SendText sends a text message to the euphoria room.

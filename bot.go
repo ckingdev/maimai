@@ -24,11 +24,6 @@ type Bot struct {
 // NewBot creates a new bot with the given configurations.
 func NewBot(room *Room) (*Bot, error) {
 	bot := Bot{room}
-	// TODO : change this to read handler config from file
-	bot.Room.handlers = append(bot.Room.handlers, PingEventHandler)
-	bot.Room.handlers = append(bot.Room.handlers, PingCommandHandler)
-	bot.Room.handlers = append(bot.Room.handlers, SeenCommandHandler)
-	bot.Room.handlers = append(bot.Room.handlers, SeenRecordHandler)
 	return &bot, nil
 }
 
@@ -110,7 +105,7 @@ func SeenRecordHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	t := time.Now().Unix()
 	err = room.storeSeen(user, t)
 	if err != nil {
-		errChan <- err
+		panic(err)
 	}
 	return
 }
@@ -188,6 +183,7 @@ func (b *Bot) Run() {
 			panic(err)
 		}
 		if packet.Type == "kill" {
+			panic("Killed!")
 			return
 		}
 		var wg sync.WaitGroup
