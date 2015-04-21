@@ -14,7 +14,7 @@ import (
 const DEBUG = true
 
 // Handler describes functions that process packets.
-type Handler func(bot *Bot, packet *PacketEvent, errChan chan error)
+type Handler func(room *Room, packet *PacketEvent, errChan chan error)
 
 // Bot holds a Room, logger, config, and handlers. This is the main object.
 type Bot struct {
@@ -33,7 +33,7 @@ func NewBot(room *Room) (*Bot, error) {
 }
 
 // PingEventHandler processes a ping-event and replies with a ping-reply.
-func PingEventHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
+func PingEventHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != PingType {
 		return
 	}
@@ -51,7 +51,7 @@ func PingEventHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 		return
 	}
 
-	if err = bot.Room.SendPing(data.Time); err != nil {
+	if err = room.SendPing(data.Time); err != nil {
 		log.Printf("ERROR: %s\n", err)
 	}
 	return
@@ -65,7 +65,7 @@ func isValidPingCommand(payload *SendEvent) bool {
 }
 
 // PingCommandHandler handles a send-event, checks for a !ping, and replies.
-func PingCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
+func PingCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -84,7 +84,7 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 			log.Println("DEBUG: Handling !ping command.")
 		}
 
-		if err = bot.Room.SendText("pong!", data.ID); err != nil {
+		if err = room.SendText("pong!", data.ID); err != nil {
 			log.Printf("ERROR: %s\n", err)
 		}
 	}
@@ -92,7 +92,7 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 }
 
 // SeenRecordHandler handles a send-event and records that the sender was seen.
-func SeenRecordHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
+func SeenRecordHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -108,7 +108,7 @@ func SeenRecordHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	}
 	user := strings.Replace(data.Sender.Name, " ", "", -1)
 	t := time.Now().Unix()
-	err = bot.Room.storeSeen(user, t)
+	err = room.storeSeen(user, t)
 	if err != nil {
 		errChan <- err
 	}
@@ -127,7 +127,7 @@ func isValidSeenCommand(payload *SendEvent) bool {
 
 // SeenCommandHandler handles a send-event, checks if !seen command was given, and responds.
 // TODO : make seen record a time when a user joins a room or changes their nick
-func SeenCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
+func SeenCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -144,12 +144,12 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	if isValidSeenCommand(data) {
 		trimmed := strings.TrimSpace(data.Content)
 		splits := strings.Split(trimmed, " ")
-		lastSeen, err := bot.Room.retrieveSeen(splits[1][1:])
+		lastSeen, err := room.retrieveSeen(splits[1][1:])
 		if err != nil {
 			errChan <- err
 		}
 		if lastSeen == nil {
-			bot.Room.SendText("User has not been seen yet.", data.ID)
+			room.SendText("User has not been seen yet.", data.ID)
 			return
 		}
 		lastSeenInt, err := strconv.Atoi(string(lastSeen))
@@ -158,7 +158,7 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 		}
 		lastSeenTime := time.Unix(int64(lastSeenInt), 0)
 		since := time.Since(lastSeenTime)
-		bot.Room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
+		room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
 			int(since.Hours()), int(since.Minutes())), data.ID)
 		return
 	}
@@ -195,7 +195,7 @@ func (b *Bot) Run() {
 			wg.Add(1)
 			go func(h Handler) {
 				defer wg.Done()
-				h(b, packet, errChan)
+				h(b.Room, packet, errChan)
 			}(handler)
 		}
 		wg.Wait()

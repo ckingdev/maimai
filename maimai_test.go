@@ -130,7 +130,7 @@ func TestNickSend(t *testing.T) {
 			t.Fatalf("Incorrect nick. Expected MaiMai, got %s\n", nick)
 		}
 	} else {
-		t.Fatal("'nick' not found as payload field.\n")
+		t.Fatal("'nick' not found as paylo	ad field.\n")
 	}
 	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
 	if err != nil {
