@@ -142,9 +142,6 @@ func (r *Room) Run() {
 		if err != nil {
 			panic(err)
 		}
-		if packet.Type == "kill" {
-			return
-		}
 		var wg sync.WaitGroup
 		for _, handler := range r.handlers {
 			wg.Add(1)

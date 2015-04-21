@@ -89,11 +89,7 @@ func TestPingResponse(t *testing.T) {
 	if payloadReply.Time != timeSent {
 		t.Fatal("Mismatch between time in inbound and outbound packets.")
 	}
-	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
-	if err != nil {
-		panic(err)
-	}
-	*outbound <- killPacket
+
 	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
@@ -128,11 +124,6 @@ func TestNickSend(t *testing.T) {
 	} else {
 		t.Fatal("'nick' not found as paylo	ad field.\n")
 	}
-	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
-	if err != nil {
-		panic(err)
-	}
-	outbound <- killPacket
 	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
@@ -157,11 +148,6 @@ func TestTextSend(t *testing.T) {
 	} else {
 		t.Fatal("'content' not found as payload field.")
 	}
-	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
-	if err != nil {
-		panic(err)
-	}
-	outbound <- killPacket
 	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
@@ -190,11 +176,6 @@ func TestPingCommand(t *testing.T) {
 	} else {
 		t.Fatal("No parent field in payload.")
 	}
-	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
-	if err != nil {
-		panic(err)
-	}
-	*outbound <- killPacket
 	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
@@ -227,10 +208,5 @@ func TestSeenCommand(t *testing.T) {
 	} else {
 		t.Fatal("No content field in payload.")
 	}
-	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
-	if err != nil {
-		panic(err)
-	}
-	*outbound <- killPacket
 	time.Sleep(time.Duration(500) * time.Millisecond)
 }
