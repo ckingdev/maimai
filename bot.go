@@ -183,7 +183,6 @@ func (b *Bot) Run() {
 			panic(err)
 		}
 		if packet.Type == "kill" {
-			panic("Killed!")
 			return
 		}
 		var wg sync.WaitGroup
