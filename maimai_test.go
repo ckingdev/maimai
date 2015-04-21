@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func NewTestBot() (*Bot, *chan PacketEvent, *chan []byte) {
+func NewTestRoom() (*Room, *chan PacketEvent, *chan []byte) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
@@ -15,11 +15,7 @@ func NewTestBot() (*Bot, *chan PacketEvent, *chan []byte) {
 	if err != nil {
 		panic(fmt.Sprintf("Error creating room: %s\n", err))
 	}
-	b, err := NewBot(room)
-	if err != nil {
-		panic(fmt.Sprintf("Error creating bot: %s\n", err))
-	}
-	return b, &inbound, &outbound
+	return room, &inbound, &outbound
 }
 
 func ReceiveSendPacket(data []byte) (*PacketEvent, *map[string]string) {
@@ -61,9 +57,9 @@ func CreateTestSendEvent(text string, parent string, ID string) PacketEvent {
 }
 
 func TestPingResponse(t *testing.T) {
-	b, inbound, outbound := NewTestBot()
-	defer b.Room.db.Close()
-	go b.Run()
+	r, inbound, outbound := NewTestRoom()
+	defer r.db.Close()
+	go r.Run()
 	timeSent := time.Now().Unix()
 	packet := PacketEvent{ID: "0",
 		Type: "ping-event"}
@@ -170,9 +166,9 @@ func TestTextSend(t *testing.T) {
 }
 
 func TestPingCommand(t *testing.T) {
-	bot, inbound, outbound := NewTestBot()
-	defer bot.Room.db.Close()
-	go bot.Run()
+	r, inbound, outbound := NewTestRoom()
+	defer r.db.Close()
+	go r.Run()
 	time.Sleep(time.Second)
 	pingPacket := CreateTestSendEvent("!ping", "", "1")
 	*inbound <- pingPacket
@@ -203,9 +199,9 @@ func TestPingCommand(t *testing.T) {
 }
 
 func TestSeenCommand(t *testing.T) {
-	bot, inbound, outbound := NewTestBot()
-	defer bot.Room.db.Close()
-	go bot.Run()
+	r, inbound, outbound := NewTestRoom()
+	defer r.db.Close()
+	go r.Run()
 	time.Sleep(time.Second)
 	seenPacket := CreateTestSendEvent("!seen @xyz", "", "1")
 	*inbound <- seenPacket

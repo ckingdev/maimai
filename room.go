@@ -3,7 +3,9 @@ package maimai
 import (
 	"fmt"
 	"log"
+	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -115,4 +117,48 @@ func (r *Room) retrieveSeen(user string) ([]byte, error) {
 		return nil
 	})
 	return t, err
+}
+
+// Run provides a method for setup and the main loop that the bot will run with handlers.
+func (r *Room) Run() {
+	if r.config.ErrorLogPath != "" {
+		errorFile, err := os.OpenFile(r.config.ErrorLogPath,
+			os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+		defer errorFile.Close()
+		log.SetOutput(errorFile)
+	}
+	if DEBUG {
+		log.Println("DEBUG: Setting nick.")
+	}
+	errChan := make(chan error, 1)
+	for {
+		if DEBUG {
+			log.Println("DEBUG: Handling packet.")
+		}
+		packet, err := r.conn.receivePacketWithRetries()
+		if err != nil {
+			panic(err)
+		}
+		if packet.Type == "kill" {
+			return
+		}
+		var wg sync.WaitGroup
+		for _, handler := range r.handlers {
+			wg.Add(1)
+			go func(h Handler) {
+				defer wg.Done()
+				h(r, packet, errChan)
+			}(handler)
+		}
+		wg.Wait()
+		select {
+		case <-errChan:
+			panic(err)
+		default:
+			continue
+		}
+	}
 }
