@@ -11,7 +11,7 @@ func NewTestBot() (*Bot, *chan PacketEvent, *chan []byte) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating room: %s\n", err))
 	}
@@ -62,6 +62,7 @@ func CreateTestSendEvent(text string, parent string, ID string) PacketEvent {
 
 func TestPingResponse(t *testing.T) {
 	b, inbound, outbound := NewTestBot()
+	defer b.Room.db.Close()
 	go b.Run()
 	timeSent := time.Now().Unix()
 	packet := PacketEvent{ID: "0",
@@ -92,13 +93,20 @@ func TestPingResponse(t *testing.T) {
 	if payloadReply.Time != timeSent {
 		t.Fatal("Mismatch between time in inbound and outbound packets.")
 	}
+	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
+	if err != nil {
+		panic(err)
+	}
+	*outbound <- killPacket
+	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
 func TestNickSend(t *testing.T) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
+	defer room.db.Close()
 	if err != nil {
 		t.Fatalf("Error creating room: %s\n", err)
 	}
@@ -124,16 +132,24 @@ func TestNickSend(t *testing.T) {
 	} else {
 		t.Fatal("'nick' not found as payload field.\n")
 	}
+	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
+	if err != nil {
+		panic(err)
+	}
+	outbound <- killPacket
+	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
 func TestTextSend(t *testing.T) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", ""}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
+	defer room.db.Close()
 	if err != nil {
 		t.Fatalf("Error creating room: %s\n", err)
 	}
+	//	room.SendNick("MaiMai")
 	room.SendText("test text", "parent")
 	textPacketRaw := <-outbound
 	_, textPayload := ReceiveSendPacket(textPacketRaw)
@@ -145,10 +161,17 @@ func TestTextSend(t *testing.T) {
 	} else {
 		t.Fatal("'content' not found as payload field.")
 	}
+	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
+	if err != nil {
+		panic(err)
+	}
+	outbound <- killPacket
+	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
 func TestPingCommand(t *testing.T) {
 	bot, inbound, outbound := NewTestBot()
+	defer bot.Room.db.Close()
 	go bot.Run()
 	time.Sleep(time.Second)
 	pingPacket := CreateTestSendEvent("!ping", "", "1")
@@ -171,10 +194,17 @@ func TestPingCommand(t *testing.T) {
 	} else {
 		t.Fatal("No parent field in payload.")
 	}
+	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
+	if err != nil {
+		panic(err)
+	}
+	*outbound <- killPacket
+	time.Sleep(time.Duration(500) * time.Millisecond)
 }
 
 func TestSeenCommand(t *testing.T) {
 	bot, inbound, outbound := NewTestBot()
+	defer bot.Room.db.Close()
 	go bot.Run()
 	time.Sleep(time.Second)
 	seenPacket := CreateTestSendEvent("!seen @xyz", "", "1")
@@ -201,4 +231,10 @@ func TestSeenCommand(t *testing.T) {
 	} else {
 		t.Fatal("No content field in payload.")
 	}
+	killPacket, err := json.Marshal(PacketEvent{Type: "kill"})
+	if err != nil {
+		panic(err)
+	}
+	*outbound <- killPacket
+	time.Sleep(time.Duration(500) * time.Millisecond)
 }

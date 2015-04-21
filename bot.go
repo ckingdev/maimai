@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -15,7 +16,7 @@ import (
 const DEBUG = true
 
 // Handler describes functions that process packets.
-type Handler func(bot *Bot, packet *PacketEvent)
+type Handler func(bot *Bot, packet *PacketEvent, errChan chan error)
 
 // Bot holds a Room, logger, config, and handlers. This is the main object.
 type Bot struct {
@@ -43,7 +44,7 @@ func NewBot(room *Room, botConfig *BotConfig) (*Bot, error) {
 }
 
 // PingEventHandler processes a ping-event and replies with a ping-reply.
-func PingEventHandler(bot *Bot, packet *PacketEvent) {
+func PingEventHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	if packet.Type != PingType {
 		return
 	}
@@ -75,7 +76,7 @@ func isValidPingCommand(payload *SendEvent) bool {
 }
 
 // PingCommandHandler handles a send-event, checks for a !ping, and replies.
-func PingCommandHandler(bot *Bot, packet *PacketEvent) {
+func PingCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -140,7 +141,7 @@ func (r *Room) retrieveSeen(user string) ([]byte, error) {
 }
 
 // SeenRecordHandler handles a send-event and records that the sender was seen.
-func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
+func SeenRecordHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -157,10 +158,9 @@ func SeenRecordHandler(bot *Bot, packet *PacketEvent) {
 	user := strings.Replace(data.Sender.Name, " ", "", -1)
 	t := time.Now().Unix()
 	err = bot.Room.storeSeen(user, t)
-	//	if data.Sender.Name != "" {
-	//		bot.Room.data.seen[strings.Replace(data.Sender.Name, " ", "", -1)] = time.Now()
-	//	}
-
+	if err != nil {
+		errChan <- err
+	}
 	return
 }
 
@@ -176,7 +176,7 @@ func isValidSeenCommand(payload *SendEvent) bool {
 
 // SeenCommandHandler handles a send-event, checks if !seen command was given, and responds.
 // TODO : make seen record a time when a user joins a room or changes their nick
-func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
+func SeenCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
 	}
@@ -195,7 +195,7 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 		splits := strings.Split(trimmed, " ")
 		lastSeen, err := bot.Room.retrieveSeen(splits[1][1:])
 		if err != nil {
-			panic(err)
+			errChan <- err
 		}
 		if lastSeen == nil {
 			bot.Room.SendText("User has not been seen yet.", data.ID)
@@ -216,7 +216,8 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent) {
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (b *Bot) Run() {
 	if b.config.ErrorLogPath != "" {
-		errorFile, err := os.OpenFile(b.config.ErrorLogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		errorFile, err := os.OpenFile(b.config.ErrorLogPath,
+			os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			panic(err)
 		}
@@ -226,6 +227,7 @@ func (b *Bot) Run() {
 	if DEBUG {
 		log.Println("DEBUG: Setting nick.")
 	}
+	errChan := make(chan error, 1)
 	for {
 		if DEBUG {
 			log.Println("DEBUG: Handling packet.")
@@ -234,8 +236,23 @@ func (b *Bot) Run() {
 		if err != nil {
 			panic(err)
 		}
+		if packet.Type == "kill" {
+			return
+		}
+		var wg sync.WaitGroup
 		for _, handler := range b.handlers {
-			go handler(b, packet)
+			wg.Add(1)
+			go func(h Handler) {
+				defer wg.Done()
+				h(b, packet, errChan)
+			}(handler)
+		}
+		wg.Wait()
+		select {
+		case <-errChan:
+			panic(err)
+		default:
+			continue
 		}
 	}
 }

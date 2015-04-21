@@ -50,6 +50,7 @@ type SendEvent Message
 const (
 	PingType = "ping-event"
 	SendType = "send-event"
+	KillType = "kill"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.
