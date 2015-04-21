@@ -7,6 +7,7 @@ install:
   - go get github.com/gorilla/websocket
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - go get github.com/boltdb/bolt
 
 script: 
   - go test -v -covermode=count -coverprofile=coverage.out 
