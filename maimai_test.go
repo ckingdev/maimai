@@ -11,11 +11,11 @@ func NewTestBot() (*Bot, *chan PacketEvent, *chan []byte) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db", "testing.log"}, mockConn)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating room: %s\n", err))
 	}
-	b, err := NewBot(room, &BotConfig{"testing.log"})
+	b, err := NewBot(room)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating bot: %s\n", err))
 	}
@@ -105,7 +105,7 @@ func TestNickSend(t *testing.T) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db", "testing.log"}, mockConn)
 	defer room.db.Close()
 	if err != nil {
 		t.Fatalf("Error creating room: %s\n", err)
@@ -144,7 +144,7 @@ func TestTextSend(t *testing.T) {
 	inbound := make(chan PacketEvent, 1)
 	outbound := make(chan []byte, 1)
 	mockConn := mockConnection{&inbound, &outbound}
-	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db"}, mockConn)
+	room, err := NewRoom(&RoomConfig{"MaiMai", "", "test.db", "testing.log"}, mockConn)
 	defer room.db.Close()
 	if err != nil {
 		t.Fatalf("Error creating room: %s\n", err)

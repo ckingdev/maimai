@@ -1,6 +1,7 @@
 package maimai
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -15,17 +16,19 @@ type roomData struct {
 
 // RoomConfig stores configuration options specific to a Room.
 type RoomConfig struct {
-	Nick      string
-	MsgPrefix string
-	DBPath    string
+	Nick         string
+	MsgPrefix    string
+	DBPath       string
+	ErrorLogPath string
 }
 
 // Room represents a connection to a euphoria room and associated data.
 type Room struct {
-	conn   connection
-	data   *roomData
-	config *RoomConfig
-	db     *bolt.DB
+	conn     connection
+	data     *roomData
+	config   *RoomConfig
+	db       *bolt.DB
+	handlers []Handler
 }
 
 // NewRoom creates a new room with the given configurations.
@@ -36,7 +39,7 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db}, nil
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, make([]Handler, 0)}, nil
 }
 
 // SendText sends a text message to the euphoria room.
@@ -68,4 +71,42 @@ func (r *Room) SendNick(nick string) error {
 	err := r.conn.sendJSON(msg)
 	r.data.msgID++
 	return err
+}
+
+func (r *Room) storeSeen(user string, time int64) error {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = r.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Seen"))
+		b.Put([]byte(user), []byte(strconv.FormatInt(time, 10)))
+		return nil
+	})
+	return err
+}
+
+func (r *Room) retrieveSeen(user string) ([]byte, error) {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	var t []byte
+	err = r.db.View(func(tx *bolt.Tx) error {
+		t = tx.Bucket([]byte("Seen")).Get([]byte(user))
+		return nil
+	})
+	return t, err
 }

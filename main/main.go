@@ -9,8 +9,7 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	botCfg := &maimai.BotConfig{"errors.log"}
-	roomCfg := &maimai.RoomConfig{"MaiMai", "", "testroom.db"}
+	roomCfg := &maimai.RoomConfig{"MaiMai", "", "testroom.db", "errors.log", []maimai.Handler{}}
 	connCfg := &maimai.ConnConfig{"test", 5, time.Duration(1) * time.Second}
 
 	conn, err := maimai.NewConn(connCfg)

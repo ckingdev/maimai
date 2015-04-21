@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/boltdb/bolt"
 )
 
 // DEBUG toggles DEBUG-level logging messages.
@@ -20,26 +18,17 @@ type Handler func(bot *Bot, packet *PacketEvent, errChan chan error)
 
 // Bot holds a Room, logger, config, and handlers. This is the main object.
 type Bot struct {
-	Room     *Room
-	handlers []Handler
-	config   *BotConfig
-}
-
-// BotConfig holds the configuration for a Bot object.
-type BotConfig struct {
-	ErrorLogPath string
+	Room *Room
 }
 
 // NewBot creates a new bot with the given configurations.
-func NewBot(room *Room, botConfig *BotConfig) (*Bot, error) {
-	var bot Bot
+func NewBot(room *Room) (*Bot, error) {
+	bot := Bot{room}
 	// TODO : change this to read handler config from file
-	bot.handlers = append(bot.handlers, PingEventHandler)
-	bot.handlers = append(bot.handlers, PingCommandHandler)
-	bot.handlers = append(bot.handlers, SeenCommandHandler)
-	bot.handlers = append(bot.handlers, SeenRecordHandler)
-	bot.Room = room
-	bot.config = botConfig
+	bot.Room.handlers = append(bot.Room.handlers, PingEventHandler)
+	bot.Room.handlers = append(bot.Room.handlers, PingCommandHandler)
+	bot.Room.handlers = append(bot.Room.handlers, SeenCommandHandler)
+	bot.Room.handlers = append(bot.Room.handlers, SeenRecordHandler)
 	return &bot, nil
 }
 
@@ -100,44 +89,6 @@ func PingCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 		}
 	}
 	return
-}
-
-func (r *Room) storeSeen(user string, time int64) error {
-	err := r.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
-		if err != nil {
-			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	err = r.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Seen"))
-		b.Put([]byte(user), []byte(strconv.FormatInt(time, 10)))
-		return nil
-	})
-	return err
-}
-
-func (r *Room) retrieveSeen(user string) ([]byte, error) {
-	err := r.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
-		if err != nil {
-			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	var t []byte
-	err = r.db.View(func(tx *bolt.Tx) error {
-		t = tx.Bucket([]byte("Seen")).Get([]byte(user))
-		return nil
-	})
-	return t, err
 }
 
 // SeenRecordHandler handles a send-event and records that the sender was seen.
@@ -215,8 +166,8 @@ func SeenCommandHandler(bot *Bot, packet *PacketEvent, errChan chan error) {
 
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (b *Bot) Run() {
-	if b.config.ErrorLogPath != "" {
-		errorFile, err := os.OpenFile(b.config.ErrorLogPath,
+	if b.Room.config.ErrorLogPath != "" {
+		errorFile, err := os.OpenFile(b.Room.config.ErrorLogPath,
 			os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			panic(err)
@@ -240,7 +191,7 @@ func (b *Bot) Run() {
 			return
 		}
 		var wg sync.WaitGroup
-		for _, handler := range b.handlers {
+		for _, handler := range b.Room.handlers {
 			wg.Add(1)
 			go func(h Handler) {
 				defer wg.Done()
