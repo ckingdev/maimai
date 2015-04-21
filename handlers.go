@@ -150,7 +150,7 @@ func SeenCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 		}
 		lastSeenTime := time.Unix(int64(lastSeenInt), 0)
 		since := time.Since(lastSeenTime)
-		err := room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
+		err = room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
 			int(since.Hours()), int(since.Minutes())), data.ID)
 		if err != nil {
 			errChan <- err
