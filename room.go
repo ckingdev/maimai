@@ -31,6 +31,7 @@ type Room struct {
 	config   *RoomConfig
 	db       *bolt.DB
 	handlers []Handler
+	uptime   time.Time
 }
 
 // NewRoom creates a new room with the given configurations.
@@ -48,7 +49,8 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	handlers = append(handlers, SeenCommandHandler)
 	handlers = append(handlers, SeenRecordHandler)
 	handlers = append(handlers, LinkTitleHandler)
-	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers}, nil
+	handlers = append(handlers, UptimeCommandHandler)
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now()}, nil
 }
 
 func (r *Room) Auth(password string) error {

@@ -225,3 +225,33 @@ func LinkTitleHandler(room *Room, packet *PacketEvent, errChan chan error) {
 		}
 	}
 }
+
+func UptimeCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
+	if packet.Type != SendType {
+		return
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		errChan <- err
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		errChan <- err
+		return
+	}
+	if data.Content == "!uptime" {
+		since := time.Since(room.uptime)
+		err = room.SendText(fmt.Sprintf(
+			"This bot has been up for %v hours, and %v minutes.",
+			int(since.Hours()),
+			int(since.Minutes())),
+			data.ID)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	return
+}
