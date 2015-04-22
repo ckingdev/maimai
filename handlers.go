@@ -3,10 +3,16 @@ package maimai
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
+
+var linkMatcher = regexp.MustCompile("(https?://)?[\\S]+\\.[\\S][\\S]+[\\S^\\.]")
 
 // DEBUG toggles DEBUG-level logging messages.
 const DEBUG = true
@@ -156,5 +162,66 @@ func SeenCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 			errChan <- err
 		}
 		return
+	}
+}
+
+func getLinkTitle(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("Bad response code: %s", resp.StatusCode)
+	}
+	z := html.NewTokenizer(resp.Body)
+	depth := 0
+	for {
+		tt := z.Next()
+		switch tt {
+		case html.ErrorToken:
+			return "", fmt.Errorf("No title found at url.")
+		case html.TextToken:
+			if depth > 0 {
+				return string(z.Text()), nil
+			}
+		case html.StartTagToken:
+			tn, _ := z.TagName()
+			if string(tn) == "title" {
+				depth++
+			}
+		}
+	}
+
+}
+
+func LinkTitleHandler(room *Room, packet *PacketEvent, errChan chan error) {
+	if packet.Type != SendType {
+		return
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		errChan <- err
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		errChan <- err
+		return
+	}
+	urls := linkMatcher.FindAllString(data.Content, -1)
+	for _, url := range urls {
+		if !strings.HasPrefix(url, "http") {
+			url = "http://" + url
+		}
+		title, err := getLinkTitle(url)
+		if err == nil {
+			if err := room.SendText(title, data.ID); err != nil {
+				panic(err)
+			}
+			break
+		}
 	}
 }

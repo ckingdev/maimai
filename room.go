@@ -47,6 +47,7 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	handlers = append(handlers, PingCommandHandler)
 	handlers = append(handlers, SeenCommandHandler)
 	handlers = append(handlers, SeenRecordHandler)
+	handlers = append(handlers, LinkTitleHandler)
 	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers}, nil
 }
 
@@ -54,12 +55,11 @@ func (r *Room) Auth(password string) error {
 	msg := map[string]interface{}{
 		"type": "auth",
 		"data": map[string]string{"type": "passcode",
-		"passcode": password}}
+			"passcode": password}}
 	err := r.conn.sendJSON(msg)
 	r.data.msgID++
 	return err
 }
-
 
 // SendText sends a text message to the euphoria room.
 func (r *Room) SendText(text string, parent string) error {

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"runtime"
 	"time"
-	"flag"
 
 	"github.com/apologue-dot-net/maimai"
 )
@@ -18,8 +18,8 @@ func init() {
 	const (
 		defaultRoom = "test"
 		defaultNick = "MaiMai"
-		defaultLog = "room_test.log"
-		defaultDB = "room_test.db"
+		defaultLog  = "room_test.log"
+		defaultDB   = "room_test.db"
 		defaultPass = ""
 	)
 	flag.StringVar(&roomName, "room", defaultRoom, "room for the bot to join")
