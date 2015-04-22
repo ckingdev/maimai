@@ -218,7 +218,7 @@ func LinkTitleHandler(room *Room, packet *PacketEvent, errChan chan error) {
 		}
 		title, err := getLinkTitle(url)
 		if err == nil {
-			if err := room.SendText(title, data.ID); err != nil {
+			if err := room.SendText("Link title: "+title, data.ID); err != nil {
 				panic(err)
 			}
 			break
