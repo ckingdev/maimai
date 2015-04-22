@@ -172,7 +172,7 @@ func getLinkTitle(url string) (string, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("Bad response code: %s", resp.StatusCode)
+		return "", fmt.Errorf("Bad response code: %v", resp.StatusCode)
 	}
 	z := html.NewTokenizer(resp.Body)
 	depth := 0
@@ -195,6 +195,8 @@ func getLinkTitle(url string) (string, error) {
 
 }
 
+// LinkTitleHandler handles a send-event, looks for URLs, and replies with the
+// title text of a link if a valid one is found.
 func LinkTitleHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
@@ -226,6 +228,8 @@ func LinkTitleHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	}
 }
 
+// UptimeCommandHandler handlers a send-event and if the command is given
+// replies with the time since the bot was started.
 func UptimeCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if packet.Type != SendType {
 		return
@@ -245,9 +249,8 @@ func UptimeCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	if data.Content == "!uptime" {
 		since := time.Since(room.uptime)
 		err = room.SendText(fmt.Sprintf(
-			"This bot has been up for %v hours, and %v minutes.",
-			int(since.Hours()),
-			int(since.Minutes())),
+			"This bot has been up for %s.",
+			since.String()),
 			data.ID)
 		if err != nil {
 			errChan <- err

@@ -42,7 +42,7 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	if err != nil {
 		return nil, err
 	}
-	handlers := make([]Handler, 0)
+	var handlers []Handler
 	// TODO : change this to read handler config from file
 	handlers = append(handlers, PingEventHandler)
 	handlers = append(handlers, PingCommandHandler)
@@ -53,6 +53,7 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now()}, nil
 }
 
+// Auth sends an authentication packet with the given password.
 func (r *Room) Auth(password string) error {
 	msg := map[string]interface{}{
 		"type": "auth",
