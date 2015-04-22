@@ -3,6 +3,7 @@ package maimai
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -90,7 +91,7 @@ func TestPingResponse(t *testing.T) {
 		t.Fatal("Mismatch between time in inbound and outbound packets.")
 	}
 
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(200) * time.Millisecond)
 }
 
 func TestNickSend(t *testing.T) {
@@ -124,7 +125,7 @@ func TestNickSend(t *testing.T) {
 	} else {
 		t.Fatal("'nick' not found as paylo	ad field.\n")
 	}
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(200) * time.Millisecond)
 }
 
 func TestTextSend(t *testing.T) {
@@ -136,7 +137,6 @@ func TestTextSend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating room: %s\n", err)
 	}
-	//	room.SendNick("MaiMai")
 	room.SendText("test text", "parent")
 	textPacketRaw := <-outbound
 	_, textPayload := ReceiveSendPacket(textPacketRaw)
@@ -148,14 +148,13 @@ func TestTextSend(t *testing.T) {
 	} else {
 		t.Fatal("'content' not found as payload field.")
 	}
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(200) * time.Millisecond)
 }
 
 func TestPingCommand(t *testing.T) {
 	r, inbound, outbound := NewTestRoom()
 	defer r.db.Close()
 	go r.Run()
-	time.Sleep(time.Second)
 	pingPacket := CreateTestSendEvent("!ping", "", "1")
 	*inbound <- pingPacket
 	pongData := <-*outbound
@@ -176,14 +175,13 @@ func TestPingCommand(t *testing.T) {
 	} else {
 		t.Fatal("No parent field in payload.")
 	}
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(200) * time.Millisecond)
 }
 
 func TestSeenCommand(t *testing.T) {
 	r, inbound, outbound := NewTestRoom()
 	defer r.db.Close()
 	go r.Run()
-	time.Sleep(time.Second)
 	seenPacket := CreateTestSendEvent("!seen @xyz", "", "1")
 	*inbound <- seenPacket
 	seenResp := <-*outbound
@@ -208,5 +206,59 @@ func TestSeenCommand(t *testing.T) {
 	} else {
 		t.Fatal("No content field in payload.")
 	}
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(200) * time.Millisecond)
+}
+
+func TestUptimeCommand(t *testing.T) {
+	r, inbound, outbound := NewTestRoom()
+	defer r.db.Close()
+	go r.Run()
+	uptimeCommand := CreateTestSendEvent("!uptime", "", "1")
+	*inbound <- uptimeCommand
+	uptimeResp := <-*outbound
+	_, uptimePayload := ReceiveSendPacket(uptimeResp)
+	text, ok := (*uptimePayload)["content"]
+	if !ok {
+		t.Fatal("No content field in payload.")
+	}
+	if !strings.HasPrefix(text, "This bot has been up for") {
+		t.Fatalf("Incorrect response to !uptime: got %s", text)
+	}
+	time.Sleep(time.Duration(200) * time.Millisecond)
+}
+
+func TestLinkTitle(t *testing.T) {
+	r, inbound, outbound := NewTestRoom()
+	defer r.db.Close()
+	go r.Run()
+	link := CreateTestSendEvent("google.com", "", "1")
+	*inbound <- link
+	linkResp := <-*outbound
+	_, linkRespPayload := ReceiveSendPacket(linkResp)
+	text, ok := (*linkRespPayload)["content"]
+	if !ok {
+		t.Fatal("No content field in payload.")
+	}
+	if text != "Link title: Google" {
+		t.Fatalf("Incorrect link response. Expected Link title: Google, got %s", text)
+	}
+	link = CreateTestSendEvent("http://google.com", "", "2")
+	*inbound <- link
+	linkResp = <-*outbound
+	_, linkRespPayload = ReceiveSendPacket(linkResp)
+	text, ok = (*linkRespPayload)["content"]
+	if !ok {
+		t.Fatal("No content field in payload.")
+	}
+	if text != "Link title: Google" {
+		t.Fatalf("Incorrect link response. Expected Link title: Google, got %s", text)
+	}
+	link = CreateTestSendEvent("foo.bar", "", "3")
+	*inbound <- link
+	select {
+	case <-*outbound:
+		t.Fatal("Incorrect link response. Bot replied to invalid link.")
+	case <-time.After(time.Duration(100) * time.Millisecond):
+		time.Sleep(time.Duration(200) * time.Millisecond)
+	}
 }
