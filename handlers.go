@@ -258,3 +258,29 @@ func UptimeCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
 	}
 	return
 }
+
+func ScritchCommandHandler(room *Room, packet *PacketEvent, errChan chan error) {
+	if packet.Type != SendType {
+		return
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		errChan <- err
+		return
+	}
+	data, ok := payload.(*SendEvent)
+	if !ok {
+		log.Println("ERROR: Unable to assert payload as *SendEvent.")
+		errChan <- err
+		return
+	}
+	if data.Content == "!scritch" {
+		err = room.SendText("/me bruxes",
+			data.ID)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	return
+}

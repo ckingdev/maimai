@@ -50,6 +50,7 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	handlers = append(handlers, SeenRecordHandler)
 	handlers = append(handlers, LinkTitleHandler)
 	handlers = append(handlers, UptimeCommandHandler)
+	handlers = append(handlers, ScritchCommandHandler)
 	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now()}, nil
 }
 
