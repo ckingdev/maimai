@@ -32,6 +32,8 @@ type Room struct {
 	db       *bolt.DB
 	handlers []Handler
 	uptime   time.Time
+	inbound  chan *PacketEvent
+	outbound chan *interface{}
 }
 
 // NewRoom creates a new room with the given configurations.
@@ -51,7 +53,9 @@ func NewRoom(roomCfg *RoomConfig, conn connection) (*Room, error) {
 	handlers = append(handlers, LinkTitleHandler)
 	handlers = append(handlers, UptimeCommandHandler)
 	handlers = append(handlers, ScritchCommandHandler)
-	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now()}, nil
+	inbound := make(chan *PacketEvent, 4)
+	outbound := make(chan *interface{}, 4)
+	return &Room{conn, &roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now(), inbound, outbound}, nil
 }
 
 // Auth sends an authentication packet with the given password.
