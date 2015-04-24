@@ -172,5 +172,6 @@ func (r *Room) Run() {
 	go r.dispatcher()
 	go r.sr.Receiver(r.inbound)
 	go r.sr.Sender(r.outbound)
-	<-r.errChan
+	err := <-r.errChan
+	panic(err)
 }

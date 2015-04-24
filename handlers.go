@@ -24,7 +24,7 @@ type Handler func(room *Room, input chan PacketEvent)
 func PingEventHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != PingType {
+		if packet.Type != PingEventType {
 			continue
 		}
 		if DEBUG {
@@ -57,7 +57,7 @@ func isValidPingCommand(payload *SendEvent) bool {
 func PingCommandHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()
@@ -85,7 +85,7 @@ func PingCommandHandler(room *Room, input chan PacketEvent) {
 func SeenRecordHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()
@@ -125,7 +125,7 @@ func isValidSeenCommand(payload *SendEvent) bool {
 func SeenCommandHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()
@@ -200,7 +200,7 @@ func getLinkTitle(url string) (string, error) {
 func LinkTitleHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()
@@ -234,7 +234,7 @@ func LinkTitleHandler(room *Room, input chan PacketEvent) {
 func UptimeCommandHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()
@@ -262,7 +262,7 @@ func UptimeCommandHandler(room *Room, input chan PacketEvent) {
 func ScritchCommandHandler(room *Room, input chan PacketEvent) {
 	for {
 		packet := <-input
-		if packet.Type != SendType {
+		if packet.Type != SendEventType {
 			continue
 		}
 		payload, err := packet.Payload()

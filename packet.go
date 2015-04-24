@@ -48,17 +48,17 @@ type SendEvent Message
 
 // These give named constants to the packet types.
 const (
-	PingType = "ping-event"
-	SendType = "send-event"
+	PingEventType = "ping-event"
+	SendEventType = "send-event"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.
 func (p *PacketEvent) Payload() (interface{}, error) {
 	var payload interface{}
 	switch p.Type {
-	case PingType:
+	case PingEventType:
 		payload = &PingEvent{}
-	case SendType:
+	case SendEventType:
 		payload = &SendEvent{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
