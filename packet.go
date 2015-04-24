@@ -53,9 +53,11 @@ type SendEvent Message
 
 // These give named constants to the packet types.
 const (
+	PingReplyType = "ping-reply"
 	PingEventType = "ping-event"
-	SendEventType = "send-event"
+
 	SendType      = "send"
+	SendEventType = "send-event"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.

@@ -2,9 +2,47 @@ package maimai
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 )
+
+type MockSenderReceiver struct {
+	outbound chan *interface{}
+	inbound  chan *PacketEvent
+	fail     bool
+	room     string
+}
+
+func NewMockSR(room string) *MockSenderReceiver {
+	outbound := make(chan *interface{}, 4)
+	inbound := make(chan *PacketEvent, 4)
+	return &MockSenderReceiver{outbound, inbound, true, room}
+}
+
+func (m *MockSenderReceiver) Connect(room string) error {
+	m.room = room
+	if m.fail {
+		return errors.New("Mock failed connect")
+		m.fail = false
+	}
+	m.fail = true
+	return nil
+}
+
+func (m *MockSenderReceiver) Sender(outbound chan *interface{}) {
+	for {
+		msg := <-outbound
+		m.outbound <- msg
+	}
+}
+
+func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
+	for {
+		msg := <-m.inbound
+		inbound <- msg
+	}
+}
 
 type TestHarness struct {
 	outbound *(chan interface{})
