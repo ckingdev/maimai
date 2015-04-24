@@ -13,8 +13,9 @@ import (
 
 type SenderReceiver interface {
 	Connect(room string) error
-	Sender(outbound chan *interface{})
+	Sender(outbound chan interface{})
 	Receiver(inbound chan *PacketEvent)
+	Room() string
 }
 
 type WSSenderReceiver struct {
@@ -40,7 +41,7 @@ func (ws *WSSenderReceiver) connectOnce(room string) error {
 }
 
 func (ws *WSSenderReceiver) Connect(room string) error {
-	if err := ws.Connect(room); err != nil {
+	if err := ws.connectOnce(room); err != nil {
 		for i := 0; i < 5; i++ {
 			time.Sleep(time.Duration(500) * time.Millisecond)
 			err = ws.connectOnce(room)
@@ -53,7 +54,7 @@ func (ws *WSSenderReceiver) Connect(room string) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) sendJSON(msg *interface{}) error {
+func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	if err := ws.conn.WriteJSON(msg); err != nil {
 		if err = ws.Connect(ws.room); err != nil {
 			return err
@@ -64,7 +65,7 @@ func (ws *WSSenderReceiver) sendJSON(msg *interface{}) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) Sender(outbound chan *interface{}) {
+func (ws *WSSenderReceiver) Sender(outbound chan interface{}) {
 	for {
 		msg := <-outbound
 		if err := ws.sendJSON(msg); err != nil {
@@ -99,4 +100,8 @@ func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 		}
 		inbound <- packet
 	}
+}
+
+func (ws *WSSenderReceiver) Room() string {
+	return ws.room
 }

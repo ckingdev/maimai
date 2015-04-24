@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"runtime"
-	"time"
 
 	"github.com/apologue-dot-net/maimai"
 )
@@ -33,22 +32,13 @@ func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath}
-	connCfg := &maimai.ConnConfig{roomName, 5, time.Duration(1) * time.Second}
-
-	conn, err := maimai.NewConn(connCfg)
-	if err != nil {
-		panic(err)
-	}
-	room, err := maimai.NewRoom(roomCfg, conn)
+	room, err := maimai.NewRoom(roomCfg, roomName)
 	if err != nil {
 		panic(err)
 	}
 	if password != "" {
-		if err = room.Auth(password); err != nil {
-			panic(err)
-		}
+		room.Auth(password)
 	}
-	err = room.SendNick("MaiMai")
 	room.SendNick(roomCfg.Nick)
 	room.Run()
 }
