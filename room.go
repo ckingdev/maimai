@@ -1,6 +1,7 @@
 package maimai
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -72,9 +73,16 @@ func (r *Room) Auth(password string) {
 
 // SendText sends a text message to the euphoria room.
 func (r *Room) SendText(text string, parent string) {
-	msg := map[string]interface{}{
-		"data": map[string]string{"content": r.config.MsgPrefix + text, "parent": parent},
-		"type": "send", "id": strconv.Itoa(r.data.msgID)}
+	// msg := map[string]interface{}{
+	// 	"data": map[string]string{"content": r.config.MsgPrefix + text, "parent": parent},
+	// 	"type": "send", "id": strconv.Itoa(r.data.msgID)}
+	payload, _ := json.Marshal(SendCommand{
+		Content: text,
+		Parent:  parent})
+	msg := PacketEvent{
+		Type: SendType,
+		ID:   strconv.Itoa(r.data.msgID),
+		Data: payload}
 	r.outbound <- msg
 	r.data.msgID++
 }

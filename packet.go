@@ -43,6 +43,11 @@ type User struct {
 	ServerEra string `json:"server_era"`
 }
 
+type SendCommand struct {
+	Content string `json:"content"`
+	Parent  string `json:"parent"`
+}
+
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
@@ -50,6 +55,7 @@ type SendEvent Message
 const (
 	PingEventType = "ping-event"
 	SendEventType = "send-event"
+	SendType      = "send"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.
@@ -60,6 +66,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &PingEvent{}
 	case SendEventType:
 		payload = &SendEvent{}
+	case SendType:
+		payload = &SendCommand{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}

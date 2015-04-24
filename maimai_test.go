@@ -23,20 +23,20 @@ func NewTestHarness() (*Room, *TestHarness) {
 
 func (th *TestHarness) AssertReceivedSendText(text string) {
 	msg := <-*th.outbound
-	packet, ok := msg.(*PacketEvent)
+	packet, ok := msg.(PacketEvent)
 	if !ok {
-		panic("Could not assert message as *PacketEvent.")
+		panic("Could not assert message as PacketEvent.")
 	}
-	if packet.Type != SendEventType {
-		panic("Packet is not of type 'send'.")
+	if packet.Type != SendType {
+		panic("Packet is not of type 'send'. Got " + string(packet.Type))
 	}
 	payload, err := packet.Payload()
 	if err != nil {
-		panic("Could not extract packet payload.")
+		panic("Could not extract packet payload. Error: " + err.Error())
 	}
-	data, ok := payload.(SendEvent)
+	data, ok := payload.(*SendCommand)
 	if !ok {
-		panic("Could not assert payload as SendEvent.")
+		panic("Could not assert payload as *SendCommand.")
 	}
 	if data.Content != text {
 		panic(fmt.Sprintf("Message content does not match text. Expected '%s', got '%s'", text, data.Content))
@@ -69,10 +69,11 @@ func TestRun(t *testing.T) {
 	time.Sleep(time.Second * time.Duration(3))
 }
 
-// func TestSendText(t *testing.T) {
-// 	room, th := NewTestHarness()
-// 	defer room.db.Close()
-// 	go room.Run()
-// 	room.SendText("test text", "")
-// 	th.AssertReceivedSendText("test text")
-// }
+func TestSendText(t *testing.T) {
+	room, th := NewTestHarness()
+	defer room.db.Close()
+	go room.Run()
+	room.SendText("test text", "")
+	// <-*th.outbound
+	th.AssertReceivedSendText("test text")
+}
