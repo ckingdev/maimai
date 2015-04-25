@@ -166,10 +166,12 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 				splits := strings.Split(trimmed, " ")
 				lastSeen, err := room.retrieveSeen(splits[1][1:])
 				if err != nil {
+					fmt.Println("Error retrieving seen.")
 					room.errChan <- err
 					return
 				}
 				if lastSeen == nil {
+					fmt.Println("Sending reply for unseen user.")
 					room.SendText("User has not been seen yet.", data.ID)
 					continue
 				}
@@ -180,6 +182,7 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 				}
 				lastSeenTime := time.Unix(int64(lastSeenInt), 0)
 				since := time.Since(lastSeenTime)
+				fmt.Println("Sending reply to seen command.")
 				room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
 					int(since.Hours()), int(since.Minutes())), data.ID)
 			}

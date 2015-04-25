@@ -39,8 +39,12 @@ func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
 		if m.stop {
 			return
 		}
-		msg := <-m.inbound
-		inbound <- msg
+		select {
+		case msg := <-m.inbound:
+			inbound <- msg
+		case <-time.After(time.Duration(50) * time.Millisecond):
+			continue
+		}
 	}
 }
 
@@ -76,7 +80,6 @@ func (th *TestHarness) AssertReceivedSendText(text string) {
 		th.t.Fatal("Could not assert message as PacketEvent.")
 	}
 	if packet.Type != SendType {
-		panic("Got wrong packet type!")
 		th.t.Fatalf("Packet is not of type 'send'. Got %s", packet.Type)
 	}
 	payload, err := packet.Payload()
@@ -167,8 +170,8 @@ func TestSeenCommand(t *testing.T) {
 	go room.Run()
 	time.Sleep(time.Second)
 	th.SendSendEvent("!seen @xyz", "", "test")
-	th.AssertReceivedSendText("User has not been seen yet.")
 	time.Sleep(time.Second)
+	th.AssertReceivedSendText("User has not been seen yet.")
 	// th.SendSendEvent("!seen @test", "", "test")
 	// th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
 	room.Stop()

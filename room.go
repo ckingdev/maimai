@@ -40,9 +40,9 @@ type Room struct {
 
 // NewRoom creates a new room with the given configurations.
 func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error) {
-	log.Println("Creating/opening db...")
+	fmt.Println("Creating/opening db...")
 	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
-	log.Println("Opened db.")
+	fmt.Println("Opened db.")
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +188,14 @@ func (r *Room) Run() {
 	go r.dispatcher()
 	go r.sr.Receiver(r.inbound)
 	go r.sr.Sender(r.outbound)
-	err := <-r.errChan
-	panic(err)
+	select {
+	case err := <-r.errChan:
+		panic(err)
+	case cmd := <-r.cmdChan:
+		if cmd == "kill" {
+			return
+		}
+	}
 }
 
 func (r *Room) Stop() {
