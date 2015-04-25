@@ -35,6 +35,7 @@ type Room struct {
 	outbound chan interface{}
 	errChan  chan error
 	sr       SenderReceiver
+	cmdChan  chan string
 }
 
 // NewRoom creates a new room with the given configurations.
@@ -57,8 +58,8 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan interface{}, 4)
 	errChan := make(chan error)
-	// sr := &WSSenderReceiver{room: room}
-	return &Room{&roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now(), inbound, outbound, errChan, sr}, nil
+	cmdChan := make(chan string)
+	return &Room{&roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now(), inbound, outbound, errChan, sr, cmdChan}, nil
 }
 
 // Auth sends an authentication packet with the given password.
@@ -76,9 +77,6 @@ func (r *Room) Auth(password string) {
 
 // SendText sends a text message to the euphoria room.
 func (r *Room) SendText(text string, parent string) {
-	// msg := map[string]interface{}{
-	// 	"data": map[string]string{"content": r.config.MsgPrefix + text, "parent": parent},
-	// 	"type": "send", "id": strconv.Itoa(r.data.msgID)}
 	payload, _ := json.Marshal(SendCommand{
 		Content: text,
 		Parent:  parent})
@@ -152,16 +150,24 @@ func (r *Room) retrieveSeen(user string) ([]byte, error) {
 
 func (r *Room) dispatcher() {
 	var fanout [](chan PacketEvent)
+	var cmdChans [](chan string)
 	for i, h := range r.handlers {
 		fanout = append(fanout, make(chan PacketEvent, 4))
-		go h(r, fanout[i])
+		cmdChans = append(cmdChans, make(chan string))
+		go h(r, fanout[i], cmdChans[i])
 	}
 	for {
-		inboundMsg := <-r.inbound
-		for _, channel := range fanout {
-			channel <- *inboundMsg
+		select {
+		case inboundMsg := <-r.inbound:
+			for _, channel := range fanout {
+				channel <- *inboundMsg
+			}
+		case cmd := <-r.cmdChan:
+			for _, channel := range cmdChans {
+				channel <- cmd
+			}
+			return
 		}
-
 	}
 }
 
@@ -184,4 +190,9 @@ func (r *Room) Run() {
 	go r.sr.Sender(r.outbound)
 	err := <-r.errChan
 	panic(err)
+}
+
+func (r *Room) Stop() {
+	r.sr.Stop()
+	r.cmdChan <- "kill"
 }

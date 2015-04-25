@@ -16,11 +16,13 @@ type SenderReceiver interface {
 	Sender(outbound chan interface{})
 	Receiver(inbound chan *PacketEvent)
 	Room() string
+	Stop()
 }
 
 type WSSenderReceiver struct {
 	conn *websocket.Conn
 	room string
+	stop bool
 }
 
 func (ws *WSSenderReceiver) connectOnce(room string) error {
@@ -67,6 +69,9 @@ func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 
 func (ws *WSSenderReceiver) Sender(outbound chan interface{}) {
 	for {
+		if ws.stop {
+			return
+		}
 		msg := <-outbound
 		if err := ws.sendJSON(msg); err != nil {
 			panic(err)
@@ -94,6 +99,9 @@ func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 
 func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 	for {
+		if ws.stop {
+			return
+		}
 		packet, err := ws.receiveMessage()
 		if err != nil {
 			panic(err)
@@ -104,4 +112,8 @@ func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 
 func (ws *WSSenderReceiver) Room() string {
 	return ws.room
+}
+
+func (ws *WSSenderReceiver) Stop() {
+	ws.stop = false
 }
