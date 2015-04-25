@@ -14,10 +14,10 @@ type MockSenderReceiver struct {
 	room     string
 }
 
-func NewMockSR(room string) *MockSenderReceiver {
+func NewMockSR(room string) MockSenderReceiver {
 	outbound := make(chan *interface{}, 4)
 	inbound := make(chan *PacketEvent, 4)
-	return &MockSenderReceiver{outbound, inbound, true, room}
+	return MockSenderReceiver{outbound, inbound, true, room}
 }
 
 func (m *MockSenderReceiver) Connect(room string) error {
@@ -52,7 +52,8 @@ type TestHarness struct {
 
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log"}
-	room, err := NewRoom(roomCfg, "test")
+	mockSR := NewMockSR("test")
+	room, err := NewRoom(roomCfg, "test", mockSR)
 	if err != nil {
 		panic(err)
 	}
@@ -67,6 +68,7 @@ func (th *TestHarness) AssertReceivedSendText(text string) {
 		th.t.Fatal("Could not assert message as PacketEvent.")
 	}
 	if packet.Type != SendType {
+		panic("Got wrong packet type!")
 		th.t.Fatalf("Packet is not of type 'send'. Got %s", packet.Type)
 	}
 	payload, err := packet.Payload()
@@ -145,4 +147,14 @@ func TestScritchCommand(t *testing.T) {
 	th.SendSendEvent("!scritch", "", "test")
 	th.AssertReceivedSendText("/me bruxes")
 	time.Sleep(time.Second)
+}
+
+func TestSeenCommand(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendSendEvent("!seen @xyz", "", "test")
+	th.AssertReceivedSendText("User has not been seen yet.")
+	th.SendSendEvent("!seen @test", "", "test")
+	th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
 }

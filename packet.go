@@ -35,6 +35,10 @@ type PingEvent struct {
 	Next int64 `json:"next"`
 }
 
+type PingReply struct {
+	UnixTime int64 `json:"time,omitempty"`
+}
+
 // User encodes the information about a user in the room. Name may be duplicated within a room
 type User struct {
 	ID        string `json:"id"`
@@ -48,6 +52,15 @@ type SendCommand struct {
 	Parent  string `json:"parent"`
 }
 
+type NickCommand struct {
+	Name string `json:"name"`
+}
+
+type AuthCommand struct {
+	Type     string `json:"type"`
+	Passcode string `json:"passcode,omitempty"`
+}
+
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
@@ -58,6 +71,10 @@ const (
 
 	SendType      = "send"
 	SendEventType = "send-event"
+
+	NickType = "nick"
+
+	AuthType = "auth"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.

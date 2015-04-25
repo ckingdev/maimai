@@ -38,7 +38,7 @@ type Room struct {
 }
 
 // NewRoom creates a new room with the given configurations.
-func NewRoom(roomCfg *RoomConfig, room string) (*Room, error) {
+func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error) {
 	log.Println("Creating/opening db...")
 	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
 	log.Println("Opened db.")
@@ -57,16 +57,19 @@ func NewRoom(roomCfg *RoomConfig, room string) (*Room, error) {
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan interface{}, 4)
 	errChan := make(chan error)
-	sr := &WSSenderReceiver{room: room}
+	// sr := &WSSenderReceiver{room: room}
 	return &Room{&roomData{0, make(map[string]time.Time)}, roomCfg, db, handlers, time.Now(), inbound, outbound, errChan, sr}, nil
 }
 
 // Auth sends an authentication packet with the given password.
 func (r *Room) Auth(password string) {
-	msg := map[string]interface{}{
-		"type": "auth",
-		"data": map[string]string{"type": "passcode",
-			"passcode": password}}
+	payload, _ := json.Marshal(AuthCommand{
+		Type:     "passcode",
+		Passcode: password})
+	msg := PacketEvent{
+		Type: AuthType,
+		ID:   strconv.Itoa(r.data.msgID),
+		Data: payload}
 	r.outbound <- msg
 	r.data.msgID++
 }
@@ -89,20 +92,22 @@ func (r *Room) SendText(text string, parent string) {
 
 // SendPing sends a ping-reply, used in response to a ping-event.
 func (r *Room) SendPing(time int64) {
-	msg := map[string]interface{}{
-		"type": "ping-reply",
-		"id":   strconv.Itoa(r.data.msgID),
-		"data": map[string]int64{"time": time}}
+	payload, _ := json.Marshal(PingReply{UnixTime: time})
+	msg := PacketEvent{
+		Type: PingReplyType,
+		ID:   strconv.Itoa(r.data.msgID),
+		Data: payload}
 	r.outbound <- msg
 	r.data.msgID++
 }
 
 // SendNick sends a nick-event, setting the bot's nickname in the room.
 func (r *Room) SendNick(nick string) {
-	msg := map[string]interface{}{
-		"type": "nick",
-		"data": map[string]string{"name": nick},
-		"id":   strconv.Itoa(r.data.msgID)}
+	payload, _ := json.Marshal(NickCommand{Name: nick})
+	msg := PacketEvent{
+		Type: NickType,
+		ID:   strconv.Itoa(r.data.msgID),
+		Data: payload}
 	r.outbound <- msg
 	r.data.msgID++
 }
@@ -170,9 +175,6 @@ func (r *Room) Run() {
 		}
 		defer errorFile.Close()
 		log.SetOutput(errorFile)
-	}
-	if DEBUG {
-		log.Println("DEBUG: Setting nick.")
 	}
 	if err := r.sr.Connect(r.sr.Room()); err != nil {
 		panic(err)

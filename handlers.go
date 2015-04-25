@@ -27,6 +27,7 @@ func PingEventHandler(room *Room, input chan PacketEvent) {
 		if packet.Type != PingEventType {
 			continue
 		}
+		fmt.Println("Handling ping-event.")
 		if DEBUG {
 			log.Println("DEBUG: Replying to ping.")
 		}
