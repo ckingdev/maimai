@@ -12,6 +12,19 @@ import (
 	"golang.org/x/net/html"
 )
 
+// func TemplateHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+// 	for {
+// 		select {
+// 		case packet := <-input:
+
+// 		case cmd := <-cmdChan:
+// 			if cmd == "kill" {
+// 				return
+// 			}
+// 		}
+// 	}
+// }
+
 var linkMatcher = regexp.MustCompile("(https?://)?[\\S]+\\.[\\S][\\S]+[\\S^\\.]")
 
 // DEBUG toggles DEBUG-level logging messages.
@@ -338,6 +351,38 @@ func DebugHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			if packet.Error != "" {
 				log.Fatalf("Received %s packet containing error: %s", packet.Type, packet.Error)
 			}
+		case cmd := <-cmdChan:
+			if cmd == "kill" {
+				return
+			}
+		}
+	}
+}
+
+func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+	for {
+		select {
+		case packet := <-input:
+			if packet.Type != NickEventType {
+				continue
+			}
+			payload, err := packet.Payload()
+			if err != nil {
+				log.Printf("ERROR: %s\n", err)
+				room.errChan <- err
+				return
+			}
+			data, ok := payload.(*NickEvent)
+			if !ok {
+				log.Println("ERROR: Unable to assert payload as *NickEvent.")
+				room.errChan <- err
+				return
+			}
+			// Don't want to process joins or leaves here
+			if data.From == "" || data.To == "" {
+				continue
+			}
+			room.SendText(fmt.Sprintf("%s is now known as %s.", data.From, data.To), "")
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
 				return

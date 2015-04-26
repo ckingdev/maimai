@@ -63,6 +63,8 @@ type NickReply struct {
 	To        string `json:"to"`
 }
 
+type NickEvent NickReply
+
 type AuthCommand struct {
 	Type     string `json:"type"`
 	Passcode string `json:"passcode,omitempty"`
@@ -81,6 +83,7 @@ const (
 
 	NickType      = "nick"
 	NickReplyType = "nick-reply"
+	NickEventType = "nick-event"
 
 	AuthType = "auth"
 )
@@ -97,6 +100,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &SendCommand{}
 	case NickReplyType:
 		payload = &NickReply{}
+	case NickEventType:
+		payload = &NickEvent{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}
