@@ -390,3 +390,100 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 		}
 	}
 }
+
+func PartTimer(room *Room, user string) {
+	time.Sleep(time.Duration(20) * time.Second)
+	if room.UserLeaving(user) {
+		room.SendText(fmt.Sprintf("%s left the room.", user), "")
+		room.ClearUserLeaving(user)
+	}
+}
+
+func PartEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+	for {
+		select {
+		case packet := <-input:
+			if packet.Type != PartEventType {
+				continue
+			}
+			payload, err := packet.Payload()
+			if err != nil {
+				log.Printf("ERROR: %s\n", err)
+				room.errChan <- err
+				return
+			}
+			data, ok := payload.(*PresenceEvent)
+			if !ok {
+				log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
+				room.errChan <- err
+				return
+			}
+			user := data.User.Name
+			room.SetUserLeaving(user)
+			go PartTimer(room, user)
+		case cmd := <-cmdChan:
+			if cmd == "kill" {
+				return
+			}
+		}
+	}
+}
+
+func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+	for {
+		select {
+		case packet := <-input:
+			switch packet.Type {
+
+			case JoinEventType:
+				payload, err := packet.Payload()
+				if err != nil {
+					log.Printf("ERROR: %s\n", err)
+					room.errChan <- err
+					return
+				}
+				data, ok := payload.(*PresenceEvent)
+				if !ok {
+					log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
+					room.errChan <- err
+					return
+				}
+				user := data.User.Name
+				if room.UserLeaving(user) {
+					room.ClearUserLeaving(user)
+				} else if data.Name != "" {
+					room.SendText(fmt.Sprintf("%s joined the room.", user), "")
+				}
+			case NickEventType:
+				payload, err := packet.Payload()
+				if err != nil {
+					log.Printf("ERROR: %s\n", err)
+					room.errChan <- err
+					return
+				}
+				data, ok := payload.(*NickEvent)
+				if !ok {
+					log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
+					room.errChan <- err
+					return
+				}
+				if data.From != "" {
+					continue
+				}
+				user := data.To
+				if user == "" {
+					continue
+				}
+				if room.UserLeaving(user) {
+					room.ClearUserLeaving(user)
+				} else {
+					room.SendText(fmt.Sprintf("%s joined the room.", user), "")
+				}
+			}
+		case cmd := <-cmdChan:
+			if cmd == "kill" {
+				return
+			}
+		}
+	}
+}

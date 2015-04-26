@@ -70,6 +70,11 @@ type AuthCommand struct {
 	Passcode string `json:"passcode,omitempty"`
 }
 
+type PresenceEvent struct {
+	*User
+	SessionID string `json:"session_id"`
+}
+
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
@@ -84,6 +89,10 @@ const (
 	NickType      = "nick"
 	NickReplyType = "nick-reply"
 	NickEventType = "nick-event"
+
+	JoinEventType = "join-event"
+
+	PartEventType = "part-event"
 
 	AuthType = "auth"
 )
@@ -102,6 +111,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &NickReply{}
 	case NickEventType:
 		payload = &NickEvent{}
+	case JoinEventType, PartEventType:
+		payload = &PresenceEvent{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}

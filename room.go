@@ -11,10 +11,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+type empty struct{}
+
 type roomData struct {
 	msgID       int
 	seen        map[string]time.Time
-	userLeaving map[string]interface{}
+	userLeaving map[string]empty
 }
 
 // RoomConfig stores configuration options specific to a Room.
@@ -66,12 +68,14 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 	handlers = append(handlers, ScritchCommandHandler)
 	handlers = append(handlers, DebugHandler)
 	handlers = append(handlers, NickChangeHandler)
+	handlers = append(handlers, JoinEventHandler)
+	handlers = append(handlers, PartEventHandler)
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan interface{}, 4)
 	errChan := make(chan error)
 	cmdChan := make(chan string)
 	return &Room{&roomData{0, make(map[string]time.Time),
-		make(map[string]interface{})}, roomCfg, db, handlers, time.Now(),
+		make(map[string]empty)}, roomCfg, db, handlers, time.Now(),
 		inbound, outbound, errChan, sr, cmdChan}, nil
 }
 
@@ -213,4 +217,19 @@ func (r *Room) Stop() {
 	time.Sleep(time.Duration(300) * time.Millisecond)
 	r.sr.Stop()
 	r.cmdChan <- "kill"
+}
+
+func (r *Room) UserLeaving(user string) bool {
+	if _, ok := r.data.userLeaving[user]; ok {
+		return true
+	}
+	return false
+}
+
+func (r *Room) ClearUserLeaving(user string) {
+	delete(r.data.userLeaving, user)
+}
+
+func (r *Room) SetUserLeaving(user string) {
+	r.data.userLeaving[user] = empty{}
 }
