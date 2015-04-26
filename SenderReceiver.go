@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -15,13 +16,13 @@ type SenderReceiver interface {
 	Connect(room string) error
 	Sender(outbound chan interface{})
 	Receiver(inbound chan *PacketEvent)
-	Room() string
+	GetRoom() string
 	Stop()
 }
 
 type WSSenderReceiver struct {
 	conn *websocket.Conn
-	room string
+	Room string
 	stop bool
 }
 
@@ -58,7 +59,7 @@ func (ws *WSSenderReceiver) Connect(room string) error {
 
 func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	if err := ws.conn.WriteJSON(msg); err != nil {
-		if err = ws.Connect(ws.room); err != nil {
+		if err = ws.Connect(ws.Room); err != nil {
 			return err
 		}
 		err = ws.conn.WriteJSON(msg)
@@ -82,7 +83,7 @@ func (ws *WSSenderReceiver) Sender(outbound chan interface{}) {
 func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	_, msg, err := ws.conn.ReadMessage()
 	if err != nil {
-		if err = ws.Connect(ws.room); err != nil {
+		if err = ws.Connect(ws.Room); err != nil {
 			return &PacketEvent{}, err
 		}
 		_, msg, err = ws.conn.ReadMessage()
@@ -106,12 +107,13 @@ func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 		if err != nil {
 			panic(err)
 		}
+		log.Printf("Received packet of type: %s", packet.Type)
 		inbound <- packet
 	}
 }
 
-func (ws *WSSenderReceiver) Room() string {
-	return ws.room
+func (ws *WSSenderReceiver) GetRoom() string {
+	return ws.Room
 }
 
 func (ws *WSSenderReceiver) Stop() {

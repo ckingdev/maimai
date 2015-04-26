@@ -49,7 +49,7 @@ func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) Room() string {
+func (m *MockSenderReceiver) GetRoom() string {
 	return m.room
 }
 

@@ -330,3 +330,18 @@ func ScritchCommandHandler(room *Room, input chan PacketEvent, cmdChan chan stri
 		}
 	}
 }
+
+func DebugHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+	for {
+		select {
+		case packet := <-input:
+			if packet.Error != "" {
+				log.Fatalf("Received %s packet containing error: %s", packet.Type, packet.Error)
+			}
+		case cmd := <-cmdChan:
+			if cmd == "kill" {
+				return
+			}
+		}
+	}
+}
