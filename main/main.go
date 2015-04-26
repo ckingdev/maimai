@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath}
-	room, err := maimai.NewRoom(roomCfg, roomName)
+	room, err := maimai.NewRoom(roomCfg, roomName, &maimai.WSSenderReceiver{})
 	if err != nil {
 		panic(err)
 	}
