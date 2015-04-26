@@ -2,6 +2,7 @@ package maimai
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -95,6 +96,28 @@ func (th *TestHarness) AssertReceivedSendText(text string) {
 	}
 }
 
+func (th *TestHarness) AssertReceivedSendPrefix(prefix string) {
+	msg := <-*th.outbound
+	packet, ok := (*msg).(PacketEvent)
+	if !ok {
+		th.t.Fatal("Could not assert message as PacketEvent.")
+	}
+	if packet.Type != SendType {
+		th.t.Fatalf("Packet is not of type 'send'. Got %s", packet.Type)
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		th.t.Fatalf("Could not extract packet payload. Error: %s", err)
+	}
+	data, ok := payload.(*SendCommand)
+	if !ok {
+		th.t.Fatal("Could not assert payload as *SendCommand.")
+	}
+	if !strings.HasPrefix(data.Content, prefix) {
+		th.t.Fatalf("Message beginning does not match prefix. Expected '%s', got '%s'", prefix, data.Content)
+	}
+}
+
 func (th *TestHarness) AssertReceivedNick() {
 	msg := <-*th.outbound
 	packet, ok := (*msg).(*PacketEvent)
@@ -151,7 +174,6 @@ func TestPingCommand(t *testing.T) {
 }
 
 func TestScritchCommand(t *testing.T) {
-	time.Sleep(time.Duration(1000) * time.Millisecond)
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
 	go room.Run()
@@ -168,5 +190,30 @@ func TestSeenCommand(t *testing.T) {
 	th.AssertReceivedSendText("User has not been seen yet.")
 	th.SendSendEvent("!seen @test", "", "test")
 	th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
+	room.Stop()
+}
+
+func TestUptimeCommand(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendSendEvent("!uptime", "", "test")
+	th.AssertReceivedSendPrefix("This bot has been up for")
+	room.Stop()
+}
+
+func TestLinkTitle(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendSendEvent("google.com", "", "test")
+	th.AssertReceivedSendText("Link title: Google")
+	th.SendSendEvent("foo.bar", "", "test")
+	select {
+	case <-*th.outbound:
+		panic("Unexpected packet.")
+	case <-time.After(time.Duration(300) * time.Millisecond):
+		break
+	}
 	room.Stop()
 }

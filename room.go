@@ -187,7 +187,7 @@ func (r *Room) Run() {
 }
 
 func (r *Room) Stop() {
-	time.Sleep(time.Duration(200) * time.Millisecond)
+	time.Sleep(time.Duration(300) * time.Millisecond)
 	r.sr.Stop()
 	r.cmdChan <- "kill"
 }
