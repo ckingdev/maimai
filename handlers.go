@@ -208,7 +208,11 @@ func getLinkTitle(url string) (string, error) {
 			return "", fmt.Errorf("No title found at url.")
 		case html.TextToken:
 			if depth > 0 {
-				return string(z.Text()), nil
+				title := strings.TrimSpace(string(z.Text()))
+				if title == "Imgur" {
+					return "", nil
+				}
+				return title, nil
 			}
 		case html.StartTagToken:
 			tn, _ := z.TagName()
@@ -247,7 +251,7 @@ func LinkTitleHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 					url = "http://" + url
 				}
 				title, err := getLinkTitle(url)
-				if err == nil {
+				if err == nil && title != "" {
 					room.SendText("Link title: "+title, data.ID)
 					break
 				}
