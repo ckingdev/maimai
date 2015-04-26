@@ -12,6 +12,7 @@ var nick string
 var logPath string
 var dbPath string
 var password string
+var join bool
 
 func init() {
 	const (
@@ -20,18 +21,20 @@ func init() {
 		defaultLog  = "room_test.log"
 		defaultDB   = "room_test.db"
 		defaultPass = ""
+		defaultJoin = false
 	)
 	flag.StringVar(&roomName, "room", defaultRoom, "room for the bot to join")
 	flag.StringVar(&nick, "nick", defaultNick, "nick for the bot to use")
 	flag.StringVar(&logPath, "log", defaultLog, "path for the bot's log")
 	flag.StringVar(&dbPath, "db", defaultDB, "path for the bot's db")
 	flag.StringVar(&password, "pass", defaultPass, "password for the room")
+	flag.BoolVar(&join, "join", defaultJoin, "whether the bot sends join/part/nick messages")
 }
 
 func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath}
+	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join}
 	room, err := maimai.NewRoom(roomCfg, roomName, &maimai.WSSenderReceiver{Room: roomName})
 	if err != nil {
 		panic(err)

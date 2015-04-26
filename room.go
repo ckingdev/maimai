@@ -25,6 +25,7 @@ type RoomConfig struct {
 	MsgPrefix    string
 	DBPath       string
 	ErrorLogPath string
+	Join         bool
 }
 
 // Room represents a connection to a euphoria room and associated data.
@@ -67,9 +68,11 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 	handlers = append(handlers, UptimeCommandHandler)
 	handlers = append(handlers, ScritchCommandHandler)
 	handlers = append(handlers, DebugHandler)
-	// handlers = append(handlers, NickChangeHandler)
-	// handlers = append(handlers, JoinEventHandler)
-	// handlers = append(handlers, PartEventHandler)
+	if roomCfg.Join {
+		handlers = append(handlers, NickChangeHandler)
+		handlers = append(handlers, JoinEventHandler)
+		handlers = append(handlers, PartEventHandler)
+	}
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan interface{}, 4)
 	errChan := make(chan error)
