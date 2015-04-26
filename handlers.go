@@ -392,7 +392,7 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 }
 
 func PartTimer(room *Room, user string) {
-	time.Sleep(time.Duration(20) * time.Second)
+	time.Sleep(time.Duration(120) * time.Second)
 	if room.UserLeaving(user) {
 		room.SendText(fmt.Sprintf("< %s left the room. >", user), "")
 		room.ClearUserLeaving(user)
