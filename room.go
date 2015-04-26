@@ -40,9 +40,17 @@ type Room struct {
 
 // NewRoom creates a new room with the given configurations.
 func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error) {
-	fmt.Println("Creating/opening db...")
 	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
-	fmt.Println("Opened db.")
+	if err != nil {
+		return nil, err
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -112,16 +120,6 @@ func (r *Room) SendNick(nick string) {
 
 func (r *Room) storeSeen(user string, time int64) error {
 	err := r.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
-		if err != nil {
-			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	err = r.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Seen"))
 		b.Put([]byte(user), []byte(strconv.FormatInt(time, 10)))
 		return nil
@@ -130,18 +128,8 @@ func (r *Room) storeSeen(user string, time int64) error {
 }
 
 func (r *Room) retrieveSeen(user string) ([]byte, error) {
-	err := r.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
-		if err != nil {
-			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
 	var t []byte
-	err = r.db.View(func(tx *bolt.Tx) error {
+	err := r.db.View(func(tx *bolt.Tx) error {
 		t = tx.Bucket([]byte("Seen")).Get([]byte(user))
 		return nil
 	})
@@ -199,6 +187,7 @@ func (r *Room) Run() {
 }
 
 func (r *Room) Stop() {
+	time.Sleep(time.Duration(200) * time.Millisecond)
 	r.sr.Stop()
 	r.cmdChan <- "kill"
 }

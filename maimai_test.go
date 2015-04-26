@@ -57,8 +57,8 @@ func (m *MockSenderReceiver) Stop() {
 }
 
 type TestHarness struct {
-	outbound *(chan interface{})
-	inbound  *(chan *PacketEvent)
+	outbound *chan *interface{}
+	inbound  *chan *PacketEvent
 	t        *testing.T
 }
 
@@ -69,13 +69,13 @@ func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
 	if err != nil {
 		panic(err)
 	}
-	th := &TestHarness{&room.outbound, &room.inbound, t}
+	th := &TestHarness{&mockSR.outbound, &mockSR.inbound, t}
 	return room, th
 }
 
 func (th *TestHarness) AssertReceivedSendText(text string) {
 	msg := <-*th.outbound
-	packet, ok := msg.(PacketEvent)
+	packet, ok := (*msg).(PacketEvent)
 	if !ok {
 		th.t.Fatal("Could not assert message as PacketEvent.")
 	}
@@ -97,7 +97,7 @@ func (th *TestHarness) AssertReceivedSendText(text string) {
 
 func (th *TestHarness) AssertReceivedNick() {
 	msg := <-*th.outbound
-	packet, ok := msg.(*PacketEvent)
+	packet, ok := (*msg).(*PacketEvent)
 	if !ok {
 		th.t.Fatal("Could not assert message as *PacketEvent.")
 	}
@@ -123,14 +123,12 @@ func TestConnect(t *testing.T) {
 	if err := room.sr.Connect("test"); err != nil {
 		t.Fatal("Could not connect to mock interface.")
 	}
-	time.Sleep(time.Second)
 }
 
 func TestRun(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
 	go room.Run()
-	time.Sleep(time.Second * time.Duration(3))
 	room.Stop()
 }
 
@@ -141,7 +139,6 @@ func TestSendText(t *testing.T) {
 	room.SendText("test text", "")
 	th.AssertReceivedSendText("test text")
 	room.Stop()
-	time.Sleep(time.Second)
 }
 
 func TestPingCommand(t *testing.T) {
@@ -151,28 +148,25 @@ func TestPingCommand(t *testing.T) {
 	th.SendSendEvent("!ping", "", "test")
 	th.AssertReceivedSendText("pong!")
 	room.Stop()
-	time.Sleep(time.Second)
 }
 
 func TestScritchCommand(t *testing.T) {
+	time.Sleep(time.Duration(1000) * time.Millisecond)
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
 	go room.Run()
 	th.SendSendEvent("!scritch", "", "test")
 	th.AssertReceivedSendText("/me bruxes")
 	room.Stop()
-	time.Sleep(time.Second)
 }
 
 func TestSeenCommand(t *testing.T) {
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
 	go room.Run()
-	time.Sleep(time.Second)
 	th.SendSendEvent("!seen @xyz", "", "test")
-	time.Sleep(time.Second)
 	th.AssertReceivedSendText("User has not been seen yet.")
-	// th.SendSendEvent("!seen @test", "", "test")
-	// th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
+	th.SendSendEvent("!seen @test", "", "test")
+	th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
 	room.Stop()
 }
