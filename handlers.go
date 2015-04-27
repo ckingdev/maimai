@@ -25,6 +25,25 @@ import (
 // 	}
 // }
 
+type MsgLogEvent struct {
+	Parent string `json:"id"`
+	// MsgID    string `json:"msgID"`
+	UserID   string `json:"userID"`
+	UserName string `json:"userName"`
+	Time     int64  `json:"time"`
+	Content  string `json:"content"`
+}
+
+func PrepareMsgLogEvent(msg *SendEvent) (string, *MsgLogEvent) {
+	msgLogEvent := &MsgLogEvent{
+		Parent:   msg.Parent,
+		UserID:   msg.Sender.ID,
+		UserName: msg.Sender.Name,
+		Time:     msg.Time,
+		Content:  msg.Content}
+	return msg.ID, msgLogEvent
+}
+
 var linkMatcher = regexp.MustCompile("(https?://)?[\\S]+\\.[\\S][\\S]+[\\S^\\.]")
 
 // DEBUG toggles DEBUG-level logging messages.
@@ -365,6 +384,27 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 				} else {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
+			}
+		case cmd := <-cmdChan:
+			if cmd == "kill" {
+				return
+			}
+		}
+	}
+}
+
+func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
+	for {
+		select {
+		case packet := <-input:
+			if packet.Type != SendEventType {
+				continue
+			}
+			data := GetSendEventPayload(&packet)
+			msgID, msgLogEvent := PrepareMsgLogEvent(data)
+			err := room.StoreMsgLogEvent(msgID, msgLogEvent)
+			if err != nil {
+				log.Println("Error storing message.")
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {

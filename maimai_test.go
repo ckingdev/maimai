@@ -64,7 +64,7 @@ type TestHarness struct {
 }
 
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true}
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
 	mockSR := NewMockSR("test")
 	room, err := NewRoom(roomCfg, "test", mockSR)
 	if err != nil {
@@ -277,7 +277,7 @@ func TestPingReply(t *testing.T) {
 }
 
 func TestWS(t *testing.T) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true}
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
 	room, err := NewRoom(roomCfg, "test", &WSSenderReceiver{Room: "test"})
 	if err != nil {
 		panic(err)

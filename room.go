@@ -26,6 +26,7 @@ type RoomConfig struct {
 	DBPath       string
 	ErrorLogPath string
 	Join         bool
+	MsgLog       bool
 }
 
 // Room represents a connection to a euphoria room and associated data.
@@ -42,6 +43,16 @@ type Room struct {
 	cmdChan  chan string
 }
 
+func (r *Room) StoreMsgLogEvent(msgID string, msg *MsgLogEvent) error {
+	data, _ := json.Marshal(msg)
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("MsgLog"))
+		b.Put([]byte(msgID), data)
+		return nil
+	})
+	return err
+}
+
 // NewRoom creates a new room with the given configurations.
 func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error) {
 	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
@@ -52,6 +63,16 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 		_, err := tx.CreateBucketIfNotExists([]byte("Seen"))
 		if err != nil {
 			return fmt.Errorf("Error creating bucket 'Seen': %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("MsgLog"))
+		if err != nil {
+			return fmt.Errorf("Error creating bucket 'MsgLog': %s", err)
 		}
 		return nil
 	})
@@ -72,6 +93,9 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 		handlers = append(handlers, NickChangeHandler)
 		handlers = append(handlers, JoinEventHandler)
 		handlers = append(handlers, PartEventHandler)
+	}
+	if roomCfg.MsgLog {
+		handlers = append(handlers, MessageLogHandler)
 	}
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan *PacketEvent, 4)
@@ -96,9 +120,9 @@ func (r *Room) SendPayload(payload interface{}, pType PacketType) {
 
 // Auth sends an authentication packet with the given password.
 func (r *Room) Auth(password string) {
-	payload, _ := json.Marshal(AuthCommand{
+	payload := AuthCommand{
 		Type:     "passcode",
-		Passcode: password})
+		Passcode: password}
 	r.SendPayload(payload, AuthType)
 }
 
@@ -155,7 +179,6 @@ func (r *Room) dispatcher() {
 				channel <- *inboundMsg
 			}
 		case cmd := <-r.cmdChan:
-			fmt.Println("Killing workers...")
 			for _, channel := range cmdChans {
 				channel <- cmd
 			}
@@ -186,11 +209,9 @@ func (r *Room) Run() {
 }
 
 func (r *Room) Stop() {
-	fmt.Println("Initiating Stop()")
 	r.cmdChan <- "kill"
 	r.sr.Stop()
-	time.Sleep(time.Duration(1000) * time.Millisecond)
-	fmt.Println("Finished stop.")
+	time.Sleep(time.Duration(250) * time.Millisecond)
 }
 
 func (r *Room) UserLeaving(user string) bool {
