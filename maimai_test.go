@@ -206,6 +206,7 @@ func TestLinkTitle(t *testing.T) {
 	go room.Run()
 	th.SendSendEvent("google.com", "", "test")
 	th.AssertReceivedSendText("Link title: Google")
+	// Does not exist
 	th.SendSendEvent("foo.bar", "", "test")
 	select {
 	case <-*th.outbound:
@@ -213,7 +214,24 @@ func TestLinkTitle(t *testing.T) {
 	case <-time.After(time.Duration(300) * time.Millisecond):
 		break
 	}
+	// 404
 	th.SendSendEvent("http://www.google.com/microsoft", "", "test")
+	select {
+	case <-*th.outbound:
+		panic("Unexpected packet.")
+	case <-time.After(time.Duration(300) * time.Millisecond):
+		break
+	}
+	// No <title>
+	th.SendSendEvent("https://www.gutenberg.org/cache/epub/48797/pg48797.txt", "", "test")
+	select {
+	case <-*th.outbound:
+		panic("Unexpected packet.")
+	case <-time.After(time.Duration(300) * time.Millisecond):
+		break
+	}
+	// Imgur-only title
+	th.SendSendEvent("https://imgur.com/aFga8B9", "", "test")
 	select {
 	case <-*th.outbound:
 		panic("Unexpected packet.")
