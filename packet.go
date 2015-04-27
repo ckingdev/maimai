@@ -139,10 +139,7 @@ func MakePacket(ID string, msgType PacketType, payload interface{}) (*PacketEven
 func (p *PacketEvent) Encode() ([]byte, error) { return json.Marshal(p) }
 
 func GetSendEventPayload(packet *PacketEvent) *SendEvent {
-	payload, err := packet.Payload()
-	if err != nil {
-		panic(err)
-	}
+	payload, _ := packet.Payload()
 	se, ok := payload.(*SendEvent)
 	if !ok {
 		panic("Failed to assert payload as *SendEvent")
@@ -151,10 +148,7 @@ func GetSendEventPayload(packet *PacketEvent) *SendEvent {
 }
 
 func GetNickEventPayload(packet *PacketEvent) *NickEvent {
-	payload, err := packet.Payload()
-	if err != nil {
-		panic(err)
-	}
+	payload, _ := packet.Payload()
 	se, ok := payload.(*NickEvent)
 	if !ok {
 		panic("Failed to assert payload as *NickEvent")
@@ -163,10 +157,7 @@ func GetNickEventPayload(packet *PacketEvent) *NickEvent {
 }
 
 func GetPresenceEventPayload(packet *PacketEvent) *PresenceEvent {
-	payload, err := packet.Payload()
-	if err != nil {
-		panic(err)
-	}
+	payload, _ := packet.Payload()
 	se, ok := payload.(*PresenceEvent)
 	if !ok {
 		panic("Failed to assert payload as *PresenceEvent")
