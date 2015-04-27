@@ -230,3 +230,16 @@ func TestPingReply(t *testing.T) {
 		t.Fatal("Could not extract payload.")
 	}
 }
+
+func TestWS(t *testing.T) {
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true}
+	room, err := NewRoom(roomCfg, "testg", &WSSenderReceiver{Room: "test"})
+	if err != nil {
+		panic(err)
+	}
+	defer room.db.Close()
+	room.SendNick(roomCfg.Nick)
+	go room.Run()
+	time.Sleep(time.Duration(3) * time.Second)
+	room.Stop()
+}
