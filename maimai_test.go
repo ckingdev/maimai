@@ -148,6 +148,15 @@ func (th *TestHarness) SendNickEvent(from string, to string) {
 	*th.inbound <- &msg
 }
 
+func (th *TestHarness) SendPresenceEvent(ptype PacketType, name string) {
+	payload, _ := json.Marshal(PresenceEvent{
+		User: &User{Name: name}})
+	msg := PacketEvent{
+		Type: ptype,
+		Data: payload}
+	*th.inbound <- &msg
+}
+
 func TestConnect(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
@@ -166,19 +175,19 @@ func TestRun(t *testing.T) {
 func TestSendText(t *testing.T) {
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
+	defer room.Stop()
 	go room.Run()
 	room.SendText("test text", "")
 	th.AssertReceivedSendText("test text")
-	room.Stop()
 }
 
 func TestPingCommand(t *testing.T) {
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
+	defer room.Stop()
 	go room.Run()
 	th.SendSendEvent("!ping", "", "test")
 	th.AssertReceivedSendText("pong!")
-	room.Stop()
 }
 
 func TestScritchCommand(t *testing.T) {
@@ -187,7 +196,7 @@ func TestScritchCommand(t *testing.T) {
 	go room.Run()
 	th.SendSendEvent("!scritch", "", "test")
 	th.AssertReceivedSendText("/me bruxes")
-	room.Stop()
+	defer room.Stop()
 }
 
 func TestSeenCommand(t *testing.T) {
@@ -198,7 +207,7 @@ func TestSeenCommand(t *testing.T) {
 	th.AssertReceivedSendText("User has not been seen yet.")
 	th.SendSendEvent("!seen @test", "", "test")
 	th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
-	room.Stop()
+	defer room.Stop()
 }
 
 func TestUptimeCommand(t *testing.T) {
@@ -207,7 +216,7 @@ func TestUptimeCommand(t *testing.T) {
 	go room.Run()
 	th.SendSendEvent("!uptime", "", "test")
 	th.AssertReceivedSendPrefix("This bot has been up for")
-	room.Stop()
+	defer room.Stop()
 }
 
 func TestLinkTitle(t *testing.T) {
@@ -248,13 +257,14 @@ func TestLinkTitle(t *testing.T) {
 	case <-time.After(time.Duration(300) * time.Millisecond):
 		break
 	}
-	room.Stop()
+	defer room.Stop()
 }
 
 func TestPingReply(t *testing.T) {
 	room, th := NewTestHarness(t)
-	defer room.db.Close()
 	go room.Run()
+	defer room.db.Close()
+	defer room.Stop()
 	th.SendPingEvent()
 	packet := <-*th.outbound
 	if packet.Type != PingReplyType {
@@ -273,10 +283,10 @@ func TestWS(t *testing.T) {
 		panic(err)
 	}
 	defer room.db.Close()
+	defer room.Stop()
 	room.SendNick(roomCfg.Nick)
 	go room.Run()
 	time.Sleep(time.Duration(3) * time.Second)
-	room.Stop()
 }
 
 func TestNickChange(t *testing.T) {
@@ -285,5 +295,35 @@ func TestNickChange(t *testing.T) {
 	go room.Run()
 	th.SendNickEvent("test1", "test2")
 	th.AssertReceivedSendText("< test1 is now known as test2. >")
-	room.Stop()
+	defer room.Stop()
+}
+
+func TestJoin(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendNickEvent("", "test1")
+	th.AssertReceivedSendText("< test1 joined the room. >")
+	th.SendPresenceEvent("join-event", "test2")
+	th.AssertReceivedSendText("< test2 joined the room. >")
+	defer room.Stop()
+}
+
+func TestPart(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendPresenceEvent("part-event", "test1")
+	select {
+	case msg := <-*th.outbound:
+		if msg.Type != SendType {
+			t.Fatalf("Incorrect packet type. Expected 'send', got '%s'.", msg.Type)
+		}
+	case <-time.After(time.Duration(25) * time.Second):
+		t.Fatal("Timeout: expecting send packet.")
+	}
+	defer room.Stop()
 }

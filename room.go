@@ -155,10 +155,13 @@ func (r *Room) dispatcher() {
 				channel <- *inboundMsg
 			}
 		case cmd := <-r.cmdChan:
+			fmt.Println("Killing workers...")
 			for _, channel := range cmdChans {
 				channel <- cmd
 			}
 			return
+		case err := <-r.errChan:
+			panic(err)
 		}
 	}
 }
@@ -177,23 +180,17 @@ func (r *Room) Run() {
 	if err := r.sr.Connect(r.sr.GetRoom()); err != nil {
 		panic(err)
 	}
-	go r.dispatcher()
 	go r.sr.Receiver(r.inbound)
 	go r.sr.Sender(r.outbound)
-	select {
-	case err := <-r.errChan:
-		panic(err)
-	case cmd := <-r.cmdChan:
-		if cmd == "kill" {
-			return
-		}
-	}
+	r.dispatcher()
 }
 
 func (r *Room) Stop() {
-	time.Sleep(time.Duration(300) * time.Millisecond)
-	r.sr.Stop()
+	fmt.Println("Initiating Stop()")
 	r.cmdChan <- "kill"
+	r.sr.Stop()
+	time.Sleep(time.Duration(1000) * time.Millisecond)
+	fmt.Println("Finished stop.")
 }
 
 func (r *Room) UserLeaving(user string) bool {

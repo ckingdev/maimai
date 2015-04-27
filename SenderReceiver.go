@@ -117,5 +117,5 @@ func (ws *WSSenderReceiver) GetRoom() string {
 }
 
 func (ws *WSSenderReceiver) Stop() {
-	ws.stop = false
+	ws.stop = true
 }
