@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"os"
 	"runtime"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/apologue-dot-net/maimai"
 )
 
@@ -14,6 +16,7 @@ var dbPath string
 var password string
 var join bool
 var msgLog bool
+var logger = logrus.New()
 
 func init() {
 	const (
@@ -36,9 +39,17 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer logFile.Close()
+	logger.Out = logFile
+
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join, msgLog}
-	room, err := maimai.NewRoom(roomCfg, roomName, &maimai.WSSenderReceiver{Room: roomName})
+	room, err := maimai.NewRoom(roomCfg, roomName, &maimai.WSSenderReceiver{Room: roomName}, logger)
 	if err != nil {
 		panic(err)
 	}

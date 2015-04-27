@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type MockSenderReceiver struct {
@@ -20,8 +22,7 @@ func NewMockSR(room string) *MockSenderReceiver {
 	return &MockSenderReceiver{outbound, inbound, false, room}
 }
 
-func (m *MockSenderReceiver) Connect(room string) error {
-	m.room = room
+func (m *MockSenderReceiver) Connect() error {
 	return nil
 }
 
@@ -66,7 +67,7 @@ type TestHarness struct {
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
 	mockSR := NewMockSR("test")
-	room, err := NewRoom(roomCfg, "test", mockSR)
+	room, err := NewRoom(roomCfg, "test", mockSR, logrus.New())
 	if err != nil {
 		panic(err)
 	}
@@ -160,7 +161,7 @@ func (th *TestHarness) SendPresenceEvent(ptype PacketType, name string) {
 func TestConnect(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
-	if err := room.sr.Connect("test"); err != nil {
+	if err := room.sr.Connect(); err != nil {
 		t.Fatal("Could not connect to mock interface.")
 	}
 }
@@ -278,7 +279,7 @@ func TestPingReply(t *testing.T) {
 
 func TestWS(t *testing.T) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
-	room, err := NewRoom(roomCfg, "test", &WSSenderReceiver{Room: "test"})
+	room, err := NewRoom(roomCfg, "test", &WSSenderReceiver{Room: "test"}, logrus.New())
 	if err != nil {
 		panic(err)
 	}

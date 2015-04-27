@@ -4,16 +4,16 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
+	// "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
 
 type SenderReceiver interface {
-	Connect(room string) error
+	Connect() error
 	Sender(outbound chan *PacketEvent)
 	Receiver(inbound chan *PacketEvent)
 	GetRoom() string
@@ -26,12 +26,12 @@ type WSSenderReceiver struct {
 	stop bool
 }
 
-func (ws *WSSenderReceiver) connectOnce(room string) error {
+func (ws *WSSenderReceiver) connectOnce() error {
 	tlsConn, err := tls.Dial("tcp", "euphoria.io:443", &tls.Config{})
 	if err != nil {
 		return err
 	}
-	roomURL, err := url.Parse(fmt.Sprintf("wss://euphoria.io/room/%s/ws", room))
+	roomURL, err := url.Parse(fmt.Sprintf("wss://euphoria.io/room/%s/ws", ws.Room))
 	if err != nil {
 		return err
 	}
@@ -43,11 +43,11 @@ func (ws *WSSenderReceiver) connectOnce(room string) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) Connect(room string) error {
-	if err := ws.connectOnce(room); err != nil {
+func (ws *WSSenderReceiver) Connect() error {
+	if err := ws.connectOnce(); err != nil {
 		for i := 0; i < 5; i++ {
 			time.Sleep(time.Duration(500) * time.Millisecond)
-			err = ws.connectOnce(room)
+			err = ws.connectOnce()
 			if err != nil {
 				break
 			}
@@ -59,7 +59,7 @@ func (ws *WSSenderReceiver) Connect(room string) error {
 
 func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	if err := ws.conn.WriteJSON(msg); err != nil {
-		if err = ws.Connect(ws.Room); err != nil {
+		if err = ws.Connect(); err != nil {
 			return err
 		}
 		err = ws.conn.WriteJSON(msg)
@@ -83,7 +83,7 @@ func (ws *WSSenderReceiver) Sender(outbound chan *PacketEvent) {
 func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	_, msg, err := ws.conn.ReadMessage()
 	if err != nil {
-		if err = ws.Connect(ws.Room); err != nil {
+		if err = ws.Connect(); err != nil {
 			return &PacketEvent{}, err
 		}
 		_, msg, err = ws.conn.ReadMessage()
@@ -107,7 +107,6 @@ func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("Received packet of type: %s", packet.Type)
 		inbound <- packet
 	}
 }

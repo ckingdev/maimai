@@ -1,8 +1,8 @@
 package maimai
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -46,9 +46,6 @@ func PrepareMsgLogEvent(msg *Message) (string, *MsgLogEvent) {
 
 var linkMatcher = regexp.MustCompile("(https?://)?[\\S]+\\.[\\S][\\S]+[\\S^\\.]")
 
-// DEBUG toggles DEBUG-level logging messages.
-const DEBUG = true
-
 // Handler describes functions that process packets.
 type Handler func(room *Room, input chan PacketEvent, cmdChan chan string)
 
@@ -60,20 +57,14 @@ func PingEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			if packet.Type != PingEventType {
 				continue
 			}
-			fmt.Println("Handling ping-event.")
-			if DEBUG {
-				log.Println("DEBUG: Replying to ping.")
-			}
 			payload, err := packet.Payload()
 			if err != nil {
-				log.Printf("ERROR: %s\n", err)
 				room.errChan <- err
 				return
 			}
 			data, ok := payload.(*PingEvent)
 			if !ok {
-				log.Println("ERROR: Unable to assert payload as *PingEvent.")
-				room.errChan <- err
+				room.errChan <- errors.New("Could not assert payload as *PingEvent.")
 				return
 			}
 			room.SendPing(data.Time)
@@ -102,9 +93,6 @@ func PingCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 			}
 			data := GetMessagePayload(&packet)
 			if isValidPingCommand(data) {
-				if DEBUG {
-					log.Println("DEBUG: Handling !ping command.")
-				}
 				room.SendText("pong!", data.ID)
 			}
 		case cmd := <-cmdChan:
@@ -298,7 +286,7 @@ func DebugHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 		select {
 		case packet := <-input:
 			if packet.Error != "" {
-				log.Fatalf("Received %s packet containing error: %s", packet.Type, packet.Error)
+				room.Logger.Errorf("Packet received containing error: %s", packet.Error)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
@@ -401,17 +389,11 @@ func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			case SendEventType:
 				data := GetMessagePayload(&packet)
 				msgID, msgLogEvent := PrepareMsgLogEvent(data)
-				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
-				if err != nil {
-					log.Println("Error storing message.")
-				}
+				room.StoreMsgLogEvent(msgID, msgLogEvent)
 			case SendReplyType:
 				data := GetMessagePayload(&packet)
 				msgID, msgLogEvent := PrepareMsgLogEvent(data)
-				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
-				if err != nil {
-					log.Println("Error storing message.")
-				}
+				room.StoreMsgLogEvent(msgID, msgLogEvent)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {

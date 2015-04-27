@@ -145,7 +145,7 @@ func GetMessagePayload(packet *PacketEvent) *Message {
 	payload, _ := packet.Payload()
 	se, ok := payload.(*Message)
 	if !ok {
-		panic("Failed to assert payload as *Message")
+
 	}
 	return se
 }

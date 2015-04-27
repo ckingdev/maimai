@@ -3,11 +3,10 @@ package maimai
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
 )
 
@@ -41,20 +40,23 @@ type Room struct {
 	errChan  chan error
 	sr       SenderReceiver
 	cmdChan  chan string
+	Logger   *logrus.Logger
 }
 
-func (r *Room) StoreMsgLogEvent(msgID string, msg *MsgLogEvent) error {
+func (r *Room) StoreMsgLogEvent(msgID string, msg *MsgLogEvent) {
 	data, _ := json.Marshal(msg)
 	err := r.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("MsgLog"))
 		b.Put([]byte(msgID), data)
 		return nil
 	})
-	return err
+	if err != nil {
+		r.Logger.Errorf("Error logging message: %s", err)
+	}
 }
 
 // NewRoom creates a new room with the given configurations.
-func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error) {
+func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver, logger *logrus.Logger) (*Room, error) {
 	db, err := bolt.Open(roomCfg.DBPath, 0666, nil)
 	if err != nil {
 		return nil, err
@@ -103,14 +105,13 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 	cmdChan := make(chan string)
 	return &Room{&roomData{0, make(map[string]time.Time),
 		make(map[string]empty)}, roomCfg, db, handlers, time.Now(),
-		inbound, outbound, errChan, sr, cmdChan}, nil
+		inbound, outbound, errChan, sr, cmdChan, logger}, nil
 }
 
 func (r *Room) SendPayload(payload interface{}, pType PacketType) {
 	msg, err := MakePacket(strconv.Itoa(r.data.msgID), pType, payload)
 	if err != nil {
-		log.Printf("ERROR: making packet of type %s.", pType)
-		return
+		r.Logger.Errorf("Error sending payload type %s: %v", pType, payload)
 	}
 	go func() {
 		r.outbound <- msg
@@ -184,23 +185,14 @@ func (r *Room) dispatcher() {
 			}
 			return
 		case err := <-r.errChan:
-			panic(err)
+			r.Logger.Fatalf("Unhandled error received from handler: %s\n", err)
 		}
 	}
 }
 
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (r *Room) Run() {
-	if r.config.ErrorLogPath != "" {
-		errorFile, err := os.OpenFile(r.config.ErrorLogPath,
-			os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			panic(err)
-		}
-		defer errorFile.Close()
-		log.SetOutput(errorFile)
-	}
-	if err := r.sr.Connect(r.sr.GetRoom()); err != nil {
+	if err := r.sr.Connect(); err != nil {
 		panic(err)
 	}
 	go r.sr.Receiver(r.inbound)
@@ -209,9 +201,11 @@ func (r *Room) Run() {
 }
 
 func (r *Room) Stop() {
+	r.Logger.Infof("Stopping room %s...\n", r.sr.GetRoom())
 	r.cmdChan <- "kill"
 	r.sr.Stop()
 	time.Sleep(time.Duration(250) * time.Millisecond)
+	r.Logger.Infoln("Stopped.")
 }
 
 func (r *Room) UserLeaving(user string) bool {
