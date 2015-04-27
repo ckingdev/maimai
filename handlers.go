@@ -152,11 +152,7 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 					room.SendText("User has not been seen yet.", data.ID)
 					continue
 				}
-				lastSeenInt, err := strconv.Atoi(string(lastSeen))
-				if err != nil {
-					room.errChan <- err
-					return
-				}
+				lastSeenInt, _ := strconv.Atoi(string(lastSeen))
 				lastSeenTime := time.Unix(int64(lastSeenInt), 0)
 				since := time.Since(lastSeenTime)
 				room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
@@ -300,18 +296,7 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			if packet.Type != NickEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*NickEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *NickEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetNickEventPayload(&packet)
 			// Don't want to process joins or leaves here
 			if data.From == "" || data.To == "" {
 				continue
@@ -340,18 +325,7 @@ func PartEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			if packet.Type != PartEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*PresenceEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetPresenceEventPayload(&packet)
 			user := data.User.Name
 			room.SetUserLeaving(user)
 			go PartTimer(room, user)
@@ -370,18 +344,7 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			switch packet.Type {
 
 			case JoinEventType:
-				payload, err := packet.Payload()
-				if err != nil {
-					log.Printf("ERROR: %s\n", err)
-					room.errChan <- err
-					return
-				}
-				data, ok := payload.(*PresenceEvent)
-				if !ok {
-					log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
-					room.errChan <- err
-					return
-				}
+				data := GetPresenceEventPayload(&packet)
 				user := data.User.Name
 				if room.UserLeaving(user) {
 					room.ClearUserLeaving(user)
@@ -389,18 +352,7 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
 			case NickEventType:
-				payload, err := packet.Payload()
-				if err != nil {
-					log.Printf("ERROR: %s\n", err)
-					room.errChan <- err
-					return
-				}
-				data, ok := payload.(*NickEvent)
-				if !ok {
-					log.Println("ERROR: Unable to assert payload as *PresenceEvent.")
-					room.errChan <- err
-					return
-				}
+				data := GetNickEventPayload(&packet)
 				if data.From != "" {
 					continue
 				}

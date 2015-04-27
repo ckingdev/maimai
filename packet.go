@@ -149,3 +149,27 @@ func GetSendEventPayload(packet *PacketEvent) *SendEvent {
 	}
 	return se
 }
+
+func GetNickEventPayload(packet *PacketEvent) *NickEvent {
+	payload, err := packet.Payload()
+	if err != nil {
+		panic(err)
+	}
+	se, ok := payload.(*NickEvent)
+	if !ok {
+		panic("Failed to assert payload as *NickEvent")
+	}
+	return se
+}
+
+func GetPresenceEventPayload(packet *PacketEvent) *PresenceEvent {
+	payload, err := packet.Payload()
+	if err != nil {
+		panic(err)
+	}
+	se, ok := payload.(*PresenceEvent)
+	if !ok {
+		panic("Failed to assert payload as *PresenceEvent")
+	}
+	return se
+}
