@@ -301,7 +301,7 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			if data.From == "" || data.To == "" {
 				continue
 			}
-			room.SendText(fmt.Sprintf("%s is now known as %s.", data.From, data.To), "")
+			room.SendText(fmt.Sprintf("< %s is now known as %s. >", data.From, data.To), "")
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
 				return

@@ -138,6 +138,16 @@ func (th *TestHarness) SendPingEvent() {
 	*th.inbound <- &msg
 }
 
+func (th *TestHarness) SendNickEvent(from string, to string) {
+	payload, _ := json.Marshal(NickEvent{
+		From: from,
+		To:   to})
+	msg := PacketEvent{
+		Type: NickEventType,
+		Data: payload}
+	*th.inbound <- &msg
+}
+
 func TestConnect(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
@@ -266,5 +276,14 @@ func TestWS(t *testing.T) {
 	room.SendNick(roomCfg.Nick)
 	go room.Run()
 	time.Sleep(time.Duration(3) * time.Second)
+	room.Stop()
+}
+
+func TestNickChange(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendNickEvent("test1", "test2")
+	th.AssertReceivedSendText("< test1 is now known as test2. >")
 	room.Stop()
 }
