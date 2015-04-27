@@ -206,13 +206,9 @@ func (r *Room) Run() {
 }
 
 func (r *Room) Stop() {
-	r.Logger.Infof("Stopping room %s...\n", r.sr.GetRoom())
 	r.cmdChan <- "kill"
-	r.Logger.Info("Stopping SenderReceiver...")
 	r.sr.Stop()
-	r.Logger.Info("Stopping handlers...")
 	r.wg.Wait()
-	r.Logger.Infoln("Stopped.")
 }
 
 func (r *Room) UserLeaving(user string) bool {
