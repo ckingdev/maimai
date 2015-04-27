@@ -195,8 +195,7 @@ func (r *Room) Run() {
 	if err := r.sr.Connect(); err != nil {
 		panic(err)
 	}
-	go r.sr.Receiver(r.inbound)
-	go r.sr.Sender(r.outbound)
+	go r.sr.Start(r.inbound, r.outbound)
 	r.dispatcher()
 }
 

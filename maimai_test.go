@@ -3,6 +3,7 @@ package maimai
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,12 +15,13 @@ type MockSenderReceiver struct {
 	inbound  chan *PacketEvent
 	stop     bool
 	room     string
+	wg       sync.WaitGroup
 }
 
 func NewMockSR(room string) *MockSenderReceiver {
 	outbound := make(chan *PacketEvent, 4)
 	inbound := make(chan *PacketEvent, 4)
-	return &MockSenderReceiver{outbound, inbound, false, room}
+	return &MockSenderReceiver{outbound, inbound, false, room, sync.WaitGroup{}}
 }
 
 func (m *MockSenderReceiver) Connect() error {
@@ -52,6 +54,19 @@ func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
 
 func (m *MockSenderReceiver) GetRoom() string {
 	return m.room
+}
+
+func (m *MockSenderReceiver) Start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		m.Receiver(inbound)
+	}()
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		m.Sender(outbound)
+	}()
 }
 
 func (m *MockSenderReceiver) Stop() {
@@ -279,7 +294,7 @@ func TestPingReply(t *testing.T) {
 
 func TestWS(t *testing.T) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
-	room, err := NewRoom(roomCfg, "test", &WSSenderReceiver{Room: "test"}, logrus.New())
+	room, err := NewRoom(roomCfg, "test", NewWSSenderReceiver("test"), logrus.New())
 	if err != nil {
 		panic(err)
 	}

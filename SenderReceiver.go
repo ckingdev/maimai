@@ -6,24 +6,30 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
-	// "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
 
 type SenderReceiver interface {
 	Connect() error
-	Sender(outbound chan *PacketEvent)
-	Receiver(inbound chan *PacketEvent)
+	Start(inbound chan *PacketEvent, outbound chan *PacketEvent)
 	GetRoom() string
 	Stop()
 }
 
 type WSSenderReceiver struct {
-	conn *websocket.Conn
-	Room string
-	stop bool
+	conn     *websocket.Conn
+	Room     string
+	stopChan chan empty
+	wg       sync.WaitGroup
+}
+
+func NewWSSenderReceiver(room string) *WSSenderReceiver {
+	return &WSSenderReceiver{
+		Room:     room,
+		stopChan: make(chan empty, 2)}
 }
 
 func (ws *WSSenderReceiver) connectOnce() error {
@@ -70,12 +76,13 @@ func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 
 func (ws *WSSenderReceiver) Sender(outbound chan *PacketEvent) {
 	for {
-		if ws.stop {
+		select {
+		case msg := <-outbound:
+			if err := ws.sendJSON(msg); err != nil {
+				panic(err)
+			}
+		case <-ws.stopChan:
 			return
-		}
-		msg := <-outbound
-		if err := ws.sendJSON(msg); err != nil {
-			panic(err)
 		}
 	}
 }
@@ -98,16 +105,24 @@ func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	return &packet, nil
 }
 
+func (ws *WSSenderReceiver) ReceivePacket(packetCh chan *PacketEvent) {
+	packet, err := ws.receiveMessage()
+	if err != nil {
+		panic(err)
+	}
+	packetCh <- packet
+}
+
 func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 	for {
-		if ws.stop {
+		packetCh := make(chan *PacketEvent)
+		go ws.ReceivePacket(packetCh)
+		select {
+		case packet := <-packetCh:
+			inbound <- packet
+		case <-ws.stopChan:
 			return
 		}
-		packet, err := ws.receiveMessage()
-		if err != nil {
-			panic(err)
-		}
-		inbound <- packet
 	}
 }
 
@@ -115,6 +130,21 @@ func (ws *WSSenderReceiver) GetRoom() string {
 	return ws.Room
 }
 
+func (ws *WSSenderReceiver) Start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+	ws.wg.Add(1)
+	go func() {
+		defer ws.wg.Done()
+		ws.Receiver(inbound)
+	}()
+	ws.wg.Add(1)
+	go func() {
+		defer ws.wg.Done()
+		ws.Sender(outbound)
+	}()
+}
+
 func (ws *WSSenderReceiver) Stop() {
-	ws.stop = true
+	ws.stopChan <- empty{}
+	ws.stopChan <- empty{}
+	ws.wg.Wait()
 }
