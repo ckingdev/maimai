@@ -213,6 +213,13 @@ func TestLinkTitle(t *testing.T) {
 	case <-time.After(time.Duration(300) * time.Millisecond):
 		break
 	}
+	th.SendSendEvent("http://www.google.com/microsoft", "", "test")
+	select {
+	case <-*th.outbound:
+		panic("Unexpected packet.")
+	case <-time.After(time.Duration(300) * time.Millisecond):
+		break
+	}
 	room.Stop()
 }
 
@@ -233,7 +240,7 @@ func TestPingReply(t *testing.T) {
 
 func TestWS(t *testing.T) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true}
-	room, err := NewRoom(roomCfg, "testg", &WSSenderReceiver{Room: "test"})
+	room, err := NewRoom(roomCfg, "test", &WSSenderReceiver{Room: "test"})
 	if err != nil {
 		panic(err)
 	}
