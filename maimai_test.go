@@ -64,7 +64,7 @@ type TestHarness struct {
 }
 
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", false}
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true}
 	mockSR := NewMockSR("test")
 	room, err := NewRoom(roomCfg, "test", mockSR)
 	if err != nil {
@@ -124,6 +124,16 @@ func (th *TestHarness) SendSendEvent(text string, parent string, sender string) 
 		Sender:  User{Name: sender}})
 	msg := PacketEvent{
 		Type: SendEventType,
+		Data: payload}
+	*th.inbound <- &msg
+}
+
+func (th *TestHarness) SendPingEvent() {
+	payload, _ := json.Marshal(PingEvent{
+		Time: time.Now().Unix(),
+		Next: time.Now().Unix() + 30})
+	msg := PacketEvent{
+		Type: PingEventType,
 		Data: payload}
 	*th.inbound <- &msg
 }
@@ -204,4 +214,19 @@ func TestLinkTitle(t *testing.T) {
 		break
 	}
 	room.Stop()
+}
+
+func TestPingReply(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	go room.Run()
+	th.SendPingEvent()
+	packet := <-*th.outbound
+	if packet.Type != PingReplyType {
+		t.Fatalf("Incorrect packet type. Expected 'ping-reply', got '%s'", packet.Type)
+	}
+	_, err := packet.Payload()
+	if err != nil {
+		t.Fatal("Could not extract payload.")
+	}
 }
