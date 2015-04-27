@@ -81,18 +81,7 @@ func PingCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			if isValidPingCommand(data) {
 				if DEBUG {
 					log.Println("DEBUG: Handling !ping command.")
@@ -115,21 +104,10 @@ func SeenRecordHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			user := strings.Replace(data.Sender.Name, " ", "", -1)
 			t := time.Now().Unix()
-			err = room.storeSeen(user, t)
+			err := room.storeSeen(user, t)
 			if err != nil {
 				room.errChan <- err
 				return
@@ -161,18 +139,7 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			if isValidSeenCommand(data) {
 				trimmed := strings.TrimSpace(data.Content)
 				splits := strings.Split(trimmed, " ")
@@ -246,18 +213,7 @@ func LinkTitleHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			urls := linkMatcher.FindAllString(data.Content, -1)
 			for _, url := range urls {
 				if !strings.HasPrefix(url, "http") {
@@ -286,18 +242,7 @@ func UptimeCommandHandler(room *Room, input chan PacketEvent, cmdChan chan strin
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			if data.Content == "!uptime" {
 				since := time.Since(room.uptime)
 				room.SendText(fmt.Sprintf(
@@ -320,18 +265,7 @@ func ScritchCommandHandler(room *Room, input chan PacketEvent, cmdChan chan stri
 			if packet.Type != SendEventType {
 				continue
 			}
-			payload, err := packet.Payload()
-			if err != nil {
-				log.Printf("ERROR: %s\n", err)
-				room.errChan <- err
-				return
-			}
-			data, ok := payload.(*SendEvent)
-			if !ok {
-				log.Println("ERROR: Unable to assert payload as *SendEvent.")
-				room.errChan <- err
-				return
-			}
+			data := GetSendEventPayload(&packet)
 			if data.Content == "!scritch" {
 				room.SendText("/me bruxes",
 					data.ID)
