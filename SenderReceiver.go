@@ -14,7 +14,7 @@ import (
 
 type SenderReceiver interface {
 	Connect(room string) error
-	Sender(outbound chan interface{})
+	Sender(outbound chan *PacketEvent)
 	Receiver(inbound chan *PacketEvent)
 	GetRoom() string
 	Stop()
@@ -68,7 +68,7 @@ func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) Sender(outbound chan interface{}) {
+func (ws *WSSenderReceiver) Sender(outbound chan *PacketEvent) {
 	for {
 		if ws.stop {
 			return

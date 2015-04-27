@@ -1,7 +1,7 @@
 package maimai
 
 import (
-	// "encoding/json"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -36,7 +36,7 @@ type Room struct {
 	handlers []Handler
 	uptime   time.Time
 	inbound  chan *PacketEvent
-	outbound chan interface{}
+	outbound chan *PacketEvent
 	errChan  chan error
 	sr       SenderReceiver
 	cmdChan  chan string
@@ -74,7 +74,7 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 		handlers = append(handlers, PartEventHandler)
 	}
 	inbound := make(chan *PacketEvent, 4)
-	outbound := make(chan interface{}, 4)
+	outbound := make(chan *PacketEvent, 4)
 	errChan := make(chan error)
 	cmdChan := make(chan string)
 	return &Room{&roomData{0, make(map[string]time.Time),
@@ -82,70 +82,44 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver) (*Room, error)
 		inbound, outbound, errChan, sr, cmdChan}, nil
 }
 
+func (r *Room) SendPayload(payload interface{}, pType PacketType) {
+	msg, err := MakePacket(strconv.Itoa(r.data.msgID), pType, payload)
+	if err != nil {
+		log.Printf("ERROR: making packet of type %s.", pType)
+		return
+	}
+	go func() {
+		r.outbound <- msg
+	}()
+	r.data.msgID++
+}
+
 // Auth sends an authentication packet with the given password.
 func (r *Room) Auth(password string) {
-	// payload, _ := json.Marshal(AuthCommand{
-	// 	Type:     "passcode",
-	// 	Passcode: password})
-	// msg := PacketEvent{
-	// 	Type: AuthType,
-	// 	ID:   strconv.Itoa(r.data.msgID),
-	// 	Data: payload}
-	msg := map[string]interface{}{
-		"type": "auth",
-		"data": map[string]string{"type": "passcode",
-			"passcode": password}}
-	r.outbound <- msg
-	r.data.msgID++
+	payload, _ := json.Marshal(AuthCommand{
+		Type:     "passcode",
+		Passcode: password})
+	r.SendPayload(payload, AuthType)
 }
 
 // SendText sends a text message to the euphoria room.
 func (r *Room) SendText(text string, parent string) {
-	// payload, _ := json.Marshal(SendCommand{
-	// 	Content: text,
-	// 	Parent:  parent})
-	// msg := PacketEvent{
-	// 	Type: SendType,
-	// 	ID:   strconv.Itoa(r.data.msgID),
-	// 	Data: payload}
-	msg := map[string]interface{}{
-		"data": map[string]string{"content": r.config.MsgPrefix + text, "parent": parent},
-		"type": "send", "id": strconv.Itoa(r.data.msgID)}
-	r.outbound <- msg
-	r.data.msgID++
+	payload := SendCommand{
+		Content: text,
+		Parent:  parent}
+	r.SendPayload(payload, SendType)
 }
 
 // SendPing sends a ping-reply, used in response to a ping-event.
 func (r *Room) SendPing(time int64) {
-	// payload, _ := json.Marshal(PingReply{UnixTime: time})
-	// msg := PacketEvent{
-	// 	Type: PingReplyType,
-	// 	ID:   strconv.Itoa(r.data.msgID),
-	// 	Data: payload}
-	msg := map[string]interface{}{
-		"type": "ping-reply",
-		"id":   strconv.Itoa(r.data.msgID),
-		"data": map[string]int64{"time": time}}
-	r.outbound <- msg
-	r.data.msgID++
+	payload := PingReply{UnixTime: time}
+	r.SendPayload(payload, PingReplyType)
 }
 
 // SendNick sends a nick-event, setting the bot's nickname in the room.
 func (r *Room) SendNick(nick string) {
-	// payload, err := json.Marshal(NickCommand{Name: nick})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// msg := PacketEvent{
-	// 	Type: NickType,
-	// 	ID:   strconv.Itoa(r.data.msgID),
-	// 	Data: payload}
-	msg := map[string]interface{}{
-		"type": "nick",
-		"data": map[string]string{"name": nick},
-		"id":   strconv.Itoa(r.data.msgID)}
-	r.outbound <- msg
-	r.data.msgID++
+	payload := NickCommand{Name: nick}
+	r.SendPayload(payload, NickType)
 }
 
 func (r *Room) storeSeen(user string, time int64) error {

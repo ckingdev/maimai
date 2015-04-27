@@ -8,14 +8,14 @@ import (
 )
 
 type MockSenderReceiver struct {
-	outbound chan *interface{}
+	outbound chan *PacketEvent
 	inbound  chan *PacketEvent
 	stop     bool
 	room     string
 }
 
 func NewMockSR(room string) *MockSenderReceiver {
-	outbound := make(chan *interface{}, 4)
+	outbound := make(chan *PacketEvent, 4)
 	inbound := make(chan *PacketEvent, 4)
 	return &MockSenderReceiver{outbound, inbound, false, room}
 }
@@ -25,13 +25,13 @@ func (m *MockSenderReceiver) Connect(room string) error {
 	return nil
 }
 
-func (m *MockSenderReceiver) Sender(outbound chan interface{}) {
+func (m *MockSenderReceiver) Sender(outbound chan *PacketEvent) {
 	for {
 		if m.stop {
 			return
 		}
 		msg := <-outbound
-		m.outbound <- &msg
+		m.outbound <- msg
 	}
 }
 
@@ -58,13 +58,13 @@ func (m *MockSenderReceiver) Stop() {
 }
 
 type TestHarness struct {
-	outbound *chan *interface{}
+	outbound *chan *PacketEvent
 	inbound  *chan *PacketEvent
 	t        *testing.T
 }
 
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log"}
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", false}
 	mockSR := NewMockSR("test")
 	room, err := NewRoom(roomCfg, "test", mockSR)
 	if err != nil {
@@ -75,11 +75,7 @@ func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
 }
 
 func (th *TestHarness) AssertReceivedSendText(text string) {
-	msg := <-*th.outbound
-	packet, ok := (*msg).(PacketEvent)
-	if !ok {
-		th.t.Fatal("Could not assert message as PacketEvent.")
-	}
+	packet := <-*th.outbound
 	if packet.Type != SendType {
 		th.t.Fatalf("Packet is not of type 'send'. Got %s", packet.Type)
 	}
@@ -97,11 +93,7 @@ func (th *TestHarness) AssertReceivedSendText(text string) {
 }
 
 func (th *TestHarness) AssertReceivedSendPrefix(prefix string) {
-	msg := <-*th.outbound
-	packet, ok := (*msg).(PacketEvent)
-	if !ok {
-		th.t.Fatal("Could not assert message as PacketEvent.")
-	}
+	packet := <-*th.outbound
 	if packet.Type != SendType {
 		th.t.Fatalf("Packet is not of type 'send'. Got %s", packet.Type)
 	}
@@ -119,11 +111,7 @@ func (th *TestHarness) AssertReceivedSendPrefix(prefix string) {
 }
 
 func (th *TestHarness) AssertReceivedNick() {
-	msg := <-*th.outbound
-	packet, ok := (*msg).(*PacketEvent)
-	if !ok {
-		th.t.Fatal("Could not assert message as *PacketEvent.")
-	}
+	packet := <-*th.outbound
 	if packet.Type != "nick" {
 		th.t.Fatal("Packet is not of type 'nick'.")
 	}

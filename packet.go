@@ -119,3 +119,19 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 	err := json.Unmarshal(p.Data, &payload)
 	return payload, err
 }
+
+func MakePacket(ID string, msgType PacketType, payload interface{}) (*PacketEvent, error) {
+	packet := &PacketEvent{
+		ID:   ID,
+		Type: msgType}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	if err := packet.Data.UnmarshalJSON(data); err != nil {
+		return nil, err
+	}
+	return packet, nil
+}
+
+func (p *PacketEvent) Encode() ([]byte, error) { return json.Marshal(p) }
