@@ -348,30 +348,26 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 	for {
 		select {
 		case packet := <-input:
+			if packet.Type != JoinEventType && packet.Type != NickEventType {
+				continue
+			}
 			switch packet.Type {
-
 			case JoinEventType:
 				data := GetPresenceEventPayload(&packet)
 				user := data.User.Name
-				if room.UserLeaving(user) {
-					room.ClearUserLeaving(user)
-				} else if data.Name != "" {
+				if !room.UserLeaving(user) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
+				room.ClearUserLeaving(user)
 			case NickEventType:
 				data := GetNickEventPayload(&packet)
 				if data.From != "" {
 					continue
 				}
-				user := data.To
-				if user == "" {
-					continue
-				}
-				if room.UserLeaving(user) {
-					room.ClearUserLeaving(user)
-				} else {
+				if !room.UserLeaving(user) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
+				room.ClearUserLeaving(user)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
