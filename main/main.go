@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"runtime"
+	// "time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/apologue-dot-net/maimai"
@@ -57,5 +58,8 @@ func main() {
 		room.Auth(password)
 	}
 	room.SendNick(roomCfg.Nick)
-	room.Run()
+	logrus.Infoln("Running room...")
+	go room.Run()
+	logrus.Infoln("Stopping.")
+	room.Stop()
 }

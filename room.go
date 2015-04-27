@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -41,6 +42,7 @@ type Room struct {
 	sr       SenderReceiver
 	cmdChan  chan string
 	Logger   *logrus.Logger
+	wg       sync.WaitGroup
 }
 
 func (r *Room) StoreMsgLogEvent(msgID string, msg *MsgLogEvent) {
@@ -105,7 +107,7 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver, logger *logrus
 	cmdChan := make(chan string)
 	return &Room{&roomData{0, make(map[string]time.Time),
 		make(map[string]empty)}, roomCfg, db, handlers, time.Now(),
-		inbound, outbound, errChan, sr, cmdChan, logger}, nil
+		inbound, outbound, errChan, sr, cmdChan, logger, sync.WaitGroup{}}, nil
 }
 
 func (r *Room) SendPayload(payload interface{}, pType PacketType) {
@@ -170,8 +172,12 @@ func (r *Room) dispatcher() {
 	var cmdChans [](chan string)
 	for i, h := range r.handlers {
 		fanout = append(fanout, make(chan PacketEvent, 4))
-		cmdChans = append(cmdChans, make(chan string))
-		go h(r, fanout[i], cmdChans[i])
+		cmdChans = append(cmdChans, make(chan string, 1))
+		r.wg.Add(1)
+		go func(hd Handler, msgCh chan PacketEvent, cmdCh chan string) {
+			defer r.wg.Done()
+			hd(r, msgCh, cmdCh)
+		}(h, fanout[i], cmdChans[i])
 	}
 	for {
 		select {
@@ -202,8 +208,10 @@ func (r *Room) Run() {
 func (r *Room) Stop() {
 	r.Logger.Infof("Stopping room %s...\n", r.sr.GetRoom())
 	r.cmdChan <- "kill"
+	r.Logger.Info("Stopping SenderReceiver...")
 	r.sr.Stop()
-	time.Sleep(time.Duration(250) * time.Millisecond)
+	r.Logger.Info("Stopping handlers...")
+	r.wg.Wait()
 	r.Logger.Infoln("Stopped.")
 }
 

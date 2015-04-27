@@ -12,22 +12,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-// func TemplateHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
-// 	for {
-// 		select {
-// 		case packet := <-input:
-
-// 		case cmd := <-cmdChan:
-// 			if cmd == "kill" {
-// 				return
-// 			}
-// 		}
-// 	}
-// }
-
 type MsgLogEvent struct {
-	Parent string `json:"id"`
-	// MsgID    string `json:"msgID"`
+	Parent   string `json:"id"`
 	UserID   string `json:"userID"`
 	UserName string `json:"userName"`
 	Time     int64  `json:"time"`
@@ -364,10 +350,10 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 				if data.From != "" {
 					continue
 				}
-				if !room.UserLeaving(user) {
-					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
+				if !room.UserLeaving(data.To) {
+					room.SendText(fmt.Sprintf("< %s joined the room. >", data.To), "")
 				}
-				room.ClearUserLeaving(user)
+				room.ClearUserLeaving(data.To)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
