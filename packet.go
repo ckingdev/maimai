@@ -106,10 +106,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 	switch p.Type {
 	case PingEventType:
 		payload = &PingEvent{}
-	case SendEventType:
-		payload = &SendEvent{}
-	case SendReplyType:
-		payload = &SendReply{}
+	case SendEventType, SendReplyType:
+		payload = &Message{}
 	case SendType:
 		payload = &SendCommand{}
 	case NickReplyType:
@@ -143,20 +141,11 @@ func MakePacket(ID string, msgType PacketType, payload interface{}) (*PacketEven
 
 func (p *PacketEvent) Encode() ([]byte, error) { return json.Marshal(p) }
 
-func GetSendEventPayload(packet *PacketEvent) *SendEvent {
+func GetMessagePayload(packet *PacketEvent) *Message {
 	payload, _ := packet.Payload()
-	se, ok := payload.(*SendEvent)
+	se, ok := payload.(*Message)
 	if !ok {
-		panic("Failed to assert payload as *SendEvent")
-	}
-	return se
-}
-
-func GetSendReplyPayload(packet *PacketEvent) *SendReply {
-	payload, _ := packet.Payload()
-	se, ok := payload.(*SendReply)
-	if !ok {
-		panic("Failed to assert payload as *SendReply")
+		panic("Failed to assert payload as *Message")
 	}
 	return se
 }

@@ -34,7 +34,7 @@ type MsgLogEvent struct {
 	Content  string `json:"content"`
 }
 
-func PrepareMsgLogEvent(msg *SendEvent) (string, *MsgLogEvent) {
+func PrepareMsgLogEvent(msg *Message) (string, *MsgLogEvent) {
 	msgLogEvent := &MsgLogEvent{
 		Parent:   msg.Parent,
 		UserID:   msg.Sender.ID,
@@ -85,7 +85,7 @@ func PingEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 	}
 }
 
-func isValidPingCommand(payload *SendEvent) bool {
+func isValidPingCommand(payload *Message) bool {
 	if len(payload.Content) >= 5 && payload.Content[0:5] == "!ping" {
 		return true
 	}
@@ -100,7 +100,7 @@ func PingCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			if isValidPingCommand(data) {
 				if DEBUG {
 					log.Println("DEBUG: Handling !ping command.")
@@ -123,7 +123,7 @@ func SeenRecordHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			user := strings.Replace(data.Sender.Name, " ", "", -1)
 			t := time.Now().Unix()
 			err := room.storeSeen(user, t)
@@ -139,7 +139,7 @@ func SeenRecordHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 	}
 }
 
-func isValidSeenCommand(payload *SendEvent) bool {
+func isValidSeenCommand(payload *Message) bool {
 	if len(payload.Content) >= 5 &&
 		payload.Content[0:5] == "!seen" &&
 		string(payload.Content[6]) == "@" &&
@@ -158,7 +158,7 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			if isValidSeenCommand(data) {
 				trimmed := strings.TrimSpace(data.Content)
 				splits := strings.Split(trimmed, " ")
@@ -228,7 +228,7 @@ func LinkTitleHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			urls := linkMatcher.FindAllString(data.Content, -1)
 			for _, url := range urls {
 				if !strings.HasPrefix(url, "http") {
@@ -257,7 +257,7 @@ func UptimeCommandHandler(room *Room, input chan PacketEvent, cmdChan chan strin
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			if data.Content == "!uptime" {
 				since := time.Since(room.uptime)
 				room.SendText(fmt.Sprintf(
@@ -280,7 +280,7 @@ func ScritchCommandHandler(room *Room, input chan PacketEvent, cmdChan chan stri
 			if packet.Type != SendEventType {
 				continue
 			}
-			data := GetSendEventPayload(&packet)
+			data := GetMessagePayload(&packet)
 			if data.Content == "!scritch" {
 				room.SendText("/me bruxes",
 					data.ID)
@@ -399,15 +399,15 @@ func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 		case packet := <-input:
 			switch packet.Type {
 			case SendEventType:
-				data := GetSendEventPayload(&packet)
+				data := GetMessagePayload(&packet)
 				msgID, msgLogEvent := PrepareMsgLogEvent(data)
 				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
 				if err != nil {
 					log.Println("Error storing message.")
 				}
 			case SendReplyType:
-				data := GetSendReplyPayload(&packet)
-				msgID, msgLogEvent := PrepareMsgLogEvent((*SendEvent)(data))
+				data := GetMessagePayload(&packet)
+				msgID, msgLogEvent := PrepareMsgLogEvent(data)
 				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
 				if err != nil {
 					log.Println("Error storing message.")
