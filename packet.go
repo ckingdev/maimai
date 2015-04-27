@@ -78,6 +78,8 @@ type PresenceEvent struct {
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
+type SendReply SendEvent
+
 // These give named constants to the packet types.
 const (
 	PingReplyType = "ping-reply"
@@ -85,6 +87,7 @@ const (
 
 	SendType      = "send"
 	SendEventType = "send-event"
+	SendReplyType = "send-reply"
 
 	NickType      = "nick"
 	NickReplyType = "nick-reply"
@@ -105,6 +108,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &PingEvent{}
 	case SendEventType:
 		payload = &SendEvent{}
+	case SendReplyType:
+		payload = &SendReply{}
 	case SendType:
 		payload = &SendCommand{}
 	case NickReplyType:
@@ -143,6 +148,15 @@ func GetSendEventPayload(packet *PacketEvent) *SendEvent {
 	se, ok := payload.(*SendEvent)
 	if !ok {
 		panic("Failed to assert payload as *SendEvent")
+	}
+	return se
+}
+
+func GetSendReplyPayload(packet *PacketEvent) *SendReply {
+	payload, _ := packet.Payload()
+	se, ok := payload.(*SendReply)
+	if !ok {
+		panic("Failed to assert payload as *SendReply")
 	}
 	return se
 }

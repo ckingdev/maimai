@@ -397,14 +397,21 @@ func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 	for {
 		select {
 		case packet := <-input:
-			if packet.Type != SendEventType {
-				continue
-			}
-			data := GetSendEventPayload(&packet)
-			msgID, msgLogEvent := PrepareMsgLogEvent(data)
-			err := room.StoreMsgLogEvent(msgID, msgLogEvent)
-			if err != nil {
-				log.Println("Error storing message.")
+			switch packet.Type {
+			case SendEventType:
+				data := GetSendEventPayload(&packet)
+				msgID, msgLogEvent := PrepareMsgLogEvent(data)
+				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
+				if err != nil {
+					log.Println("Error storing message.")
+				}
+			case SendReplyType:
+				data := GetSendReplyPayload(&packet)
+				msgID, msgLogEvent := PrepareMsgLogEvent((*SendEvent)(data))
+				err := room.StoreMsgLogEvent(msgID, msgLogEvent)
+				if err != nil {
+					log.Println("Error storing message.")
+				}
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
