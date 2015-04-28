@@ -199,7 +199,7 @@ func (r *Room) dispatcher() {
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (r *Room) Run() {
 	if err := r.sr.connect(); err != nil {
-		panic(err)
+		r.Logger.Error("Could not connect to euphoria.")
 	}
 	go r.sr.start(r.inbound, r.outbound)
 	r.dispatcher()

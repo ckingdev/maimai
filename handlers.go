@@ -194,7 +194,6 @@ func getLinkTitle(url string) (string, error) {
 	}
 	z := html.NewTokenizer(resp.Body)
 	return extractTitleFromTree(z), nil
-
 }
 
 // LinkTitleHandler handles a send-event, looks for URLs, and replies with the

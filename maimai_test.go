@@ -331,6 +331,7 @@ func TestPart(t *testing.T) {
 	}
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
+	defer room.Stop()
 	go room.Run()
 	th.SendPresenceEvent("part-event", "test1")
 	select {
@@ -341,5 +342,15 @@ func TestPart(t *testing.T) {
 	case <-time.After(time.Duration(25) * time.Second):
 		t.Fatal("Timeout: expecting send packet.")
 	}
-	defer room.Stop()
+}
+
+func TestBadWS(t *testing.T) {
+	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
+	room, err := NewRoom(roomCfg, "test/bad/room", NewWSSenderReceiver("test/bad/room"), logrus.New())
+	if err != nil {
+		panic(err)
+	}
+	defer room.db.Close()
+	// defer room.Stop()
+	go room.Run()
 }
