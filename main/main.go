@@ -55,11 +55,8 @@ func main() {
 		panic(err)
 	}
 	if password != "" {
-		room.Auth(password)
+		room.SendAuth(password)
 	}
 	room.SendNick(roomCfg.Nick)
-	logrus.Infoln("Running room...")
-	go room.Run()
-	logrus.Infoln("Stopping.")
-	room.Stop()
+	room.Run()
 }
