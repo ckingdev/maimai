@@ -293,6 +293,9 @@ func TestPingReply(t *testing.T) {
 }
 
 func TestWS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
 	room, err := NewRoom(roomCfg, "test", NewWSSenderReceiver("test"), logrus.New())
 	if err != nil {
@@ -302,7 +305,7 @@ func TestWS(t *testing.T) {
 	defer room.Stop()
 	room.SendNick(roomCfg.Nick)
 	go room.Run()
-	time.Sleep(time.Duration(3) * time.Second)
+	time.Sleep(time.Duration(60) * time.Second)
 }
 
 func TestNickChange(t *testing.T) {
