@@ -133,6 +133,27 @@ func (th *TestHarness) AssertReceivedNick() {
 	}
 }
 
+func (th *TestHarness) AssertReceivedAuth() {
+	packet := <-*th.outbound
+	if packet.Type != "auth" {
+		th.t.Fatalf("Incorrect packet type. Expected 'auth', got '%s'.", packet.Type)
+	}
+	payload, err := packet.Payload()
+	if err != nil {
+		th.t.Fatalf("Could not extract packet payload. Error: %s", err)
+	}
+	data, ok := payload.(*AuthCommand)
+	if !ok {
+		th.t.Fatal("Could not assert payload as *AuthCommand.")
+	}
+	if data.Passcode != "test" {
+		th.t.Fatal("Incorrect passcode.")
+	}
+	if data.Type != "passcode" {
+		th.t.Fatal("Incorrect auth type.")
+	}
+}
+
 func (th *TestHarness) SendSendEvent(text string, parent string, sender string) {
 	payload, _ := json.Marshal(Message{
 		Content: text,
@@ -356,4 +377,13 @@ func TestBadWS(t *testing.T) {
 	defer room.db.Close()
 	// defer room.Stop()
 	go room.Run()
+}
+
+func TestSendAuth(t *testing.T) {
+	room, th := NewTestHarness(t)
+	defer room.db.Close()
+	defer room.Stop()
+	go room.Run()
+	room.SendAuth("test")
+	th.AssertReceivedAuth()
 }

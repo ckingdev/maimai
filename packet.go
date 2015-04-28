@@ -118,6 +118,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &PresenceEvent{}
 	case PingReplyType:
 		payload = &PingReply{}
+	case AuthType:
+		payload = &AuthCommand{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}
