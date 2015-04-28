@@ -159,6 +159,30 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 	}
 }
 
+func extractTitleFromTree(z *html.Tokenizer) string {
+	depth := 0
+	for {
+		tt := z.Next()
+		switch tt {
+		case html.ErrorToken:
+			return ""
+		case html.TextToken:
+			if depth > 0 {
+				title := strings.TrimSpace(string(z.Text()))
+				if title == "Imgur" {
+					return ""
+				}
+				return title
+			}
+		case html.StartTagToken:
+			tn, _ := z.TagName()
+			if string(tn) == "title" {
+				depth++
+			}
+		}
+	}
+}
+
 func getLinkTitle(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -169,27 +193,7 @@ func getLinkTitle(url string) (string, error) {
 		return "", fmt.Errorf("Bad response code: %v", resp.StatusCode)
 	}
 	z := html.NewTokenizer(resp.Body)
-	depth := 0
-	for {
-		tt := z.Next()
-		switch tt {
-		case html.ErrorToken:
-			return "", fmt.Errorf("No title found at url.")
-		case html.TextToken:
-			if depth > 0 {
-				title := strings.TrimSpace(string(z.Text()))
-				if title == "Imgur" {
-					return "", nil
-				}
-				return title, nil
-			}
-		case html.StartTagToken:
-			tn, _ := z.TagName()
-			if string(tn) == "title" {
-				depth++
-			}
-		}
-	}
+	return extractTitleFromTree(z), nil
 
 }
 
