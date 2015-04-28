@@ -15,7 +15,6 @@ import (
 type SenderReceiver interface {
 	connect() error
 	start(inbound chan *PacketEvent, outbound chan *PacketEvent)
-	getRoom() string
 	stop()
 }
 
@@ -124,10 +123,6 @@ func (ws *WSSenderReceiver) receiver(inbound chan *PacketEvent) {
 			return
 		}
 	}
-}
-
-func (ws *WSSenderReceiver) getRoom() string {
-	return ws.Room
 }
 
 func (ws *WSSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {

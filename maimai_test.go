@@ -52,10 +52,6 @@ func (m *MockSenderReceiver) receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) getRoom() string {
-	return m.room
-}
-
 func (m *MockSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
 	m.wg.Add(1)
 	go func() {

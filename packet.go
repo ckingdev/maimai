@@ -141,8 +141,6 @@ func MakePacket(ID string, msgType PacketType, payload interface{}) (*PacketEven
 	return packet, nil
 }
 
-func (p *PacketEvent) Encode() ([]byte, error) { return json.Marshal(p) }
-
 func GetMessagePayload(packet *PacketEvent) *Message {
 	payload, _ := packet.Payload()
 	se, ok := payload.(*Message)
