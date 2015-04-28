@@ -13,10 +13,10 @@ import (
 )
 
 type SenderReceiver interface {
-	Connect() error
-	Start(inbound chan *PacketEvent, outbound chan *PacketEvent)
-	GetRoom() string
-	Stop()
+	connect() error
+	start(inbound chan *PacketEvent, outbound chan *PacketEvent)
+	getRoom() string
+	stop()
 }
 
 type WSSenderReceiver struct {
@@ -49,7 +49,7 @@ func (ws *WSSenderReceiver) connectOnce() error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) Connect() error {
+func (ws *WSSenderReceiver) connect() error {
 	if err := ws.connectOnce(); err != nil {
 		for i := 0; i < 5; i++ {
 			time.Sleep(time.Duration(500) * time.Millisecond)
@@ -65,7 +65,7 @@ func (ws *WSSenderReceiver) Connect() error {
 
 func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	if err := ws.conn.WriteJSON(msg); err != nil {
-		if err = ws.Connect(); err != nil {
+		if err = ws.connect(); err != nil {
 			return err
 		}
 		err = ws.conn.WriteJSON(msg)
@@ -74,7 +74,7 @@ func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) Sender(outbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) sender(outbound chan *PacketEvent) {
 	for {
 		select {
 		case msg := <-outbound:
@@ -90,7 +90,7 @@ func (ws *WSSenderReceiver) Sender(outbound chan *PacketEvent) {
 func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	_, msg, err := ws.conn.ReadMessage()
 	if err != nil {
-		if err = ws.Connect(); err != nil {
+		if err = ws.connect(); err != nil {
 			return &PacketEvent{}, err
 		}
 		_, msg, err = ws.conn.ReadMessage()
@@ -105,7 +105,7 @@ func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	return &packet, nil
 }
 
-func (ws *WSSenderReceiver) ReceivePacket(packetCh chan *PacketEvent) {
+func (ws *WSSenderReceiver) receivePacket(packetCh chan *PacketEvent) {
 	packet, err := ws.receiveMessage()
 	if err != nil {
 		panic(err)
@@ -113,10 +113,10 @@ func (ws *WSSenderReceiver) ReceivePacket(packetCh chan *PacketEvent) {
 	packetCh <- packet
 }
 
-func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) receiver(inbound chan *PacketEvent) {
 	for {
 		packetCh := make(chan *PacketEvent)
-		go ws.ReceivePacket(packetCh)
+		go ws.receivePacket(packetCh)
 		select {
 		case packet := <-packetCh:
 			inbound <- packet
@@ -126,24 +126,24 @@ func (ws *WSSenderReceiver) Receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (ws *WSSenderReceiver) GetRoom() string {
+func (ws *WSSenderReceiver) getRoom() string {
 	return ws.Room
 }
 
-func (ws *WSSenderReceiver) Start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
 	ws.wg.Add(1)
 	go func() {
 		defer ws.wg.Done()
-		ws.Receiver(inbound)
+		ws.receiver(inbound)
 	}()
 	ws.wg.Add(1)
 	go func() {
 		defer ws.wg.Done()
-		ws.Sender(outbound)
+		ws.sender(outbound)
 	}()
 }
 
-func (ws *WSSenderReceiver) Stop() {
+func (ws *WSSenderReceiver) stop() {
 	ws.stopChan <- empty{}
 	ws.stopChan <- empty{}
 	ws.wg.Wait()

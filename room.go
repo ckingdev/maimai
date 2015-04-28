@@ -45,7 +45,7 @@ type Room struct {
 	wg       sync.WaitGroup
 }
 
-func (r *Room) StoreMsgLogEvent(msgID string, msg *MsgLogEvent) {
+func (r *Room) storeMsgLogEvent(msgID string, msg *MsgLogEvent) {
 	data, _ := json.Marshal(msg)
 	err := r.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("MsgLog"))
@@ -110,7 +110,7 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver, logger *logrus
 		inbound, outbound, errChan, sr, cmdChan, logger, sync.WaitGroup{}}, nil
 }
 
-func (r *Room) SendPayload(payload interface{}, pType PacketType) {
+func (r *Room) sendPayload(payload interface{}, pType PacketType) {
 	msg, err := MakePacket(strconv.Itoa(r.data.msgID), pType, payload)
 	if err != nil {
 		r.Logger.Errorf("Error sending payload type %s: %v", pType, payload)
@@ -122,11 +122,11 @@ func (r *Room) SendPayload(payload interface{}, pType PacketType) {
 }
 
 // Auth sends an authentication packet with the given password.
-func (r *Room) Auth(password string) {
+func (r *Room) SendAuth(password string) {
 	payload := AuthCommand{
 		Type:     "passcode",
 		Passcode: password}
-	r.SendPayload(payload, AuthType)
+	r.sendPayload(payload, AuthType)
 }
 
 // SendText sends a text message to the euphoria room.
@@ -134,19 +134,19 @@ func (r *Room) SendText(text string, parent string) {
 	payload := SendCommand{
 		Content: text,
 		Parent:  parent}
-	r.SendPayload(payload, SendType)
+	r.sendPayload(payload, SendType)
 }
 
 // SendPing sends a ping-reply, used in response to a ping-event.
-func (r *Room) SendPing(time int64) {
+func (r *Room) sendPing(time int64) {
 	payload := PingReply{UnixTime: time}
-	r.SendPayload(payload, PingReplyType)
+	r.sendPayload(payload, PingReplyType)
 }
 
 // SendNick sends a nick-event, setting the bot's nickname in the room.
 func (r *Room) SendNick(nick string) {
 	payload := NickCommand{Name: nick}
-	r.SendPayload(payload, NickType)
+	r.sendPayload(payload, NickType)
 }
 
 func (r *Room) storeSeen(user string, time int64) error {
@@ -198,30 +198,30 @@ func (r *Room) dispatcher() {
 
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (r *Room) Run() {
-	if err := r.sr.Connect(); err != nil {
+	if err := r.sr.connect(); err != nil {
 		panic(err)
 	}
-	go r.sr.Start(r.inbound, r.outbound)
+	go r.sr.start(r.inbound, r.outbound)
 	r.dispatcher()
 }
 
 func (r *Room) Stop() {
 	r.cmdChan <- "kill"
-	r.sr.Stop()
+	r.sr.stop()
 	r.wg.Wait()
 }
 
-func (r *Room) UserLeaving(user string) bool {
+func (r *Room) isUserLeaving(user string) bool {
 	if _, ok := r.data.userLeaving[user]; ok {
 		return true
 	}
 	return false
 }
 
-func (r *Room) ClearUserLeaving(user string) {
+func (r *Room) clearUserLeaving(user string) {
 	delete(r.data.userLeaving, user)
 }
 
-func (r *Room) SetUserLeaving(user string) {
+func (r *Room) setUserLeaving(user string) {
 	r.data.userLeaving[user] = empty{}
 }

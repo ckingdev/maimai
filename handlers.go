@@ -20,7 +20,7 @@ type MsgLogEvent struct {
 	Content  string `json:"content"`
 }
 
-func PrepareMsgLogEvent(msg *Message) (string, *MsgLogEvent) {
+func prepareMsgLogEvent(msg *Message) (string, *MsgLogEvent) {
 	msgLogEvent := &MsgLogEvent{
 		Parent:   msg.Parent,
 		UserID:   msg.Sender.ID,
@@ -53,7 +53,7 @@ func PingEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 				room.errChan <- errors.New("Could not assert payload as *PingEvent.")
 				return
 			}
-			room.SendPing(data.Time)
+			room.sendPing(data.Time)
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
 				return
@@ -303,11 +303,11 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 	}
 }
 
-func PartTimer(room *Room, user string) {
+func partTimer(room *Room, user string) {
 	time.Sleep(time.Duration(20) * time.Second)
-	if room.UserLeaving(user) {
+	if room.isUserLeaving(user) {
 		room.SendText(fmt.Sprintf("< %s left the room. >", user), "")
-		room.ClearUserLeaving(user)
+		room.clearUserLeaving(user)
 	}
 }
 
@@ -320,8 +320,8 @@ func PartEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			}
 			data := GetPresenceEventPayload(&packet)
 			user := data.User.Name
-			room.SetUserLeaving(user)
-			go PartTimer(room, user)
+			room.setUserLeaving(user)
+			go partTimer(room, user)
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
 				return
@@ -341,19 +341,19 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			case JoinEventType:
 				data := GetPresenceEventPayload(&packet)
 				user := data.User.Name
-				if !room.UserLeaving(user) {
+				if !room.isUserLeaving(user) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
-				room.ClearUserLeaving(user)
+				room.clearUserLeaving(user)
 			case NickEventType:
 				data := GetNickEventPayload(&packet)
 				if data.From != "" {
 					continue
 				}
-				if !room.UserLeaving(data.To) {
+				if !room.isUserLeaving(data.To) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", data.To), "")
 				}
-				room.ClearUserLeaving(data.To)
+				room.clearUserLeaving(data.To)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
@@ -370,12 +370,12 @@ func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 			switch packet.Type {
 			case SendEventType:
 				data := GetMessagePayload(&packet)
-				msgID, msgLogEvent := PrepareMsgLogEvent(data)
-				room.StoreMsgLogEvent(msgID, msgLogEvent)
+				msgID, msgLogEvent := prepareMsgLogEvent(data)
+				room.storeMsgLogEvent(msgID, msgLogEvent)
 			case SendReplyType:
 				data := GetMessagePayload(&packet)
-				msgID, msgLogEvent := PrepareMsgLogEvent(data)
-				room.StoreMsgLogEvent(msgID, msgLogEvent)
+				msgID, msgLogEvent := prepareMsgLogEvent(data)
+				room.storeMsgLogEvent(msgID, msgLogEvent)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {

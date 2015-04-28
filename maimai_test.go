@@ -13,7 +13,7 @@ import (
 type MockSenderReceiver struct {
 	outbound chan *PacketEvent
 	inbound  chan *PacketEvent
-	stop     bool
+	stopFlag bool
 	room     string
 	wg       sync.WaitGroup
 }
@@ -24,13 +24,13 @@ func NewMockSR(room string) *MockSenderReceiver {
 	return &MockSenderReceiver{outbound, inbound, false, room, sync.WaitGroup{}}
 }
 
-func (m *MockSenderReceiver) Connect() error {
+func (m *MockSenderReceiver) connect() error {
 	return nil
 }
 
-func (m *MockSenderReceiver) Sender(outbound chan *PacketEvent) {
+func (m *MockSenderReceiver) sender(outbound chan *PacketEvent) {
 	for {
-		if m.stop {
+		if m.stopFlag {
 			return
 		}
 		msg := <-outbound
@@ -38,9 +38,9 @@ func (m *MockSenderReceiver) Sender(outbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
+func (m *MockSenderReceiver) receiver(inbound chan *PacketEvent) {
 	for {
-		if m.stop {
+		if m.stopFlag {
 			return
 		}
 		select {
@@ -52,25 +52,25 @@ func (m *MockSenderReceiver) Receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) GetRoom() string {
+func (m *MockSenderReceiver) getRoom() string {
 	return m.room
 }
 
-func (m *MockSenderReceiver) Start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+func (m *MockSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.Receiver(inbound)
+		m.receiver(inbound)
 	}()
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.Sender(outbound)
+		m.sender(outbound)
 	}()
 }
 
-func (m *MockSenderReceiver) Stop() {
-	m.stop = true
+func (m *MockSenderReceiver) stop() {
+	m.stopFlag = true
 }
 
 type TestHarness struct {
@@ -176,7 +176,7 @@ func (th *TestHarness) SendPresenceEvent(ptype PacketType, name string) {
 func TestConnect(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
-	if err := room.sr.Connect(); err != nil {
+	if err := room.sr.connect(); err != nil {
 		t.Fatal("Could not connect to mock interface.")
 	}
 }
