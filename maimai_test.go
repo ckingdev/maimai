@@ -239,7 +239,7 @@ func TestSeenCommand(t *testing.T) {
 	th.SendSendEvent("!seen @xyz", "", "test")
 	th.AssertReceivedSendText("User has not been seen yet.")
 	th.SendSendEvent("!seen @test", "", "test")
-	th.AssertReceivedSendText("Seen 0 hours and 0 minutes ago.\n")
+	th.AssertReceivedSendText("Seen 0 hours ago.")
 	defer room.Stop()
 }
 

@@ -150,8 +150,8 @@ func SeenCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string)
 				lastSeenInt, _ := strconv.Atoi(string(lastSeen))
 				lastSeenTime := time.Unix(int64(lastSeenInt), 0)
 				since := time.Since(lastSeenTime)
-				room.SendText(fmt.Sprintf("Seen %v hours and %v minutes ago.\n",
-					int(since.Hours()), int(since.Minutes())), data.ID)
+				room.SendText(fmt.Sprintf("Seen %v hours ago.",
+					int(since.Hours())), data.ID)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {
