@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
 
@@ -23,17 +24,22 @@ type WSSenderReceiver struct {
 	Room     string
 	stopChan chan empty
 	wg       sync.WaitGroup
+	logger   *logrus.Logger
 }
 
-func NewWSSenderReceiver(room string) *WSSenderReceiver {
+func NewWSSenderReceiver(room string, logger *logrus.Logger) *WSSenderReceiver {
 	return &WSSenderReceiver{
 		Room:     room,
-		stopChan: make(chan empty, 2)}
+		stopChan: make(chan empty, 2),
+		logger:   logger,
+	}
 }
 
 func (ws *WSSenderReceiver) connectOnce() error {
+	ws.logger.Debug("Attempting connection...")
 	tlsConn, err := tls.Dial("tcp", "euphoria.io:443", &tls.Config{})
 	if err != nil {
+		ws.logger.Error("Error connecting via tls.")
 		return err
 	}
 	roomURL, err := url.Parse(fmt.Sprintf("wss://euphoria.io/room/%s/ws", ws.Room))
@@ -42,8 +48,10 @@ func (ws *WSSenderReceiver) connectOnce() error {
 	}
 	wsConn, _, err := websocket.NewClient(tlsConn, roomURL, http.Header{}, 4096, 4096)
 	if err != nil {
+		ws.logger.Error("Error connecting via websocket.")
 		return err
 	}
+	ws.logger.Debug("Connection success.")
 	ws.conn = wsConn
 	return nil
 }
@@ -101,6 +109,7 @@ func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	if err = json.Unmarshal(msg, &packet); err != nil {
 		return &PacketEvent{}, fmt.Errorf("Error unmarshalling packet: %s", msg)
 	}
+	ws.logger.Debugf("Received packet of type %s", packet.Type)
 	return &packet, nil
 }
 
