@@ -314,7 +314,7 @@ func TestWS(t *testing.T) {
 		t.Skip("Skipping test in short mode.")
 	}
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
-	room, err := NewRoom(roomCfg, "test", NewWSSenderReceiver("test"), logrus.New())
+	room, err := NewRoom(roomCfg, "test", NewWSSenderReceiver("test", logrus.New()), logrus.New())
 	if err != nil {
 		panic(err)
 	}
@@ -366,7 +366,7 @@ func TestPart(t *testing.T) {
 
 func TestBadWS(t *testing.T) {
 	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
-	room, err := NewRoom(roomCfg, "test/bad/room", NewWSSenderReceiver("test/bad/room"), logrus.New())
+	room, err := NewRoom(roomCfg, "test/bad/room", NewWSSenderReceiver("test/bad/room", logrus.New()), logrus.New())
 	if err != nil {
 		panic(err)
 	}
