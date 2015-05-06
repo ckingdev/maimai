@@ -47,6 +47,7 @@ func main() {
 	}
 	defer logFile.Close()
 	logger.Out = logFile
+	logger.Level = logrus.DebugLevel
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join, msgLog}
