@@ -51,7 +51,7 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join, msgLog}
-	room, err := maimai.NewRoom(roomCfg, roomName, maimai.NewWSSenderReceiver(roomName), logger)
+	room, err := maimai.NewRoom(roomCfg, roomName, maimai.NewWSSenderReceiver(roomName, logger), logger)
 	if err != nil {
 		panic(err)
 	}
