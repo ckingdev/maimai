@@ -101,6 +101,7 @@ func NewRoom(roomCfg *RoomConfig, room string, sr SenderReceiver, logger *logrus
 	if roomCfg.MsgLog {
 		handlers = append(handlers, MessageLogHandler)
 	}
+	// handlers = append(handlers, SuttaCommandHandler)
 	inbound := make(chan *PacketEvent, 4)
 	outbound := make(chan *PacketEvent, 4)
 	errChan := make(chan error)

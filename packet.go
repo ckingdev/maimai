@@ -110,8 +110,6 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &Message{}
 	case SendType:
 		payload = &SendCommand{}
-	case NickReplyType:
-		payload = &NickReply{}
 	case NickEventType:
 		payload = &NickEvent{}
 	case JoinEventType, PartEventType:
