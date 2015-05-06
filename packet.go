@@ -75,6 +75,13 @@ type PresenceEvent struct {
 	SessionID string `json:"session_id"`
 }
 
+type BounceEvent struct {
+	Reason      string   `json:"reason,omitempty"`
+	AuthOptions []string `json:"auth_options,omitempty"`
+	AgentID     string   `json:"agent_id,omitempty"`
+	IP          string   `json:"ip,omitempty"`
+}
+
 // SendEvent is a packet type that contains a Message only.
 type SendEvent Message
 
@@ -98,6 +105,8 @@ const (
 	PartEventType = "part-event"
 
 	AuthType = "auth"
+
+	BounceEventType = "bounce-event"
 )
 
 // Payload unmarshals the packet payload into the proper Event type and returns it.
@@ -118,6 +127,8 @@ func (p *PacketEvent) Payload() (interface{}, error) {
 		payload = &PingReply{}
 	case AuthType:
 		payload = &AuthCommand{}
+	case BounceEventType:
+		payload = &BounceEvent{}
 	default:
 		return p.Data, errors.New("Unexpected packet type.")
 	}
