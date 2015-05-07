@@ -190,6 +190,7 @@ func (r *Room) dispatcher() {
 			for _, channel := range cmdChans {
 				channel <- cmd
 			}
+			r.Logger.Warningf("command received and dispatched, exiting: %s", cmd)
 			return
 		case err := <-r.errChan:
 			r.Logger.Fatalf("Unhandled error received from handler: %s\n", err)
