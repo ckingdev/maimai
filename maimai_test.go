@@ -359,7 +359,7 @@ func TestPart(t *testing.T) {
 		if msg.Type != SendType {
 			t.Fatalf("Incorrect packet type. Expected 'send', got '%s'.", msg.Type)
 		}
-	case <-time.After(time.Duration(25) * time.Second):
+	case <-time.After(time.Duration(65) * time.Second):
 		t.Fatal("Timeout: expecting send packet.")
 	}
 }

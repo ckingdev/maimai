@@ -3,8 +3,6 @@ package maimai
 import (
 	"errors"
 	"fmt"
-	// "io/ioutil"
-	// "math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -320,7 +318,7 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 }
 
 func partTimer(room *Room, user string) {
-	time.Sleep(time.Duration(20) * time.Second)
+	time.Sleep(time.Duration(60) * time.Second)
 	if room.isUserLeaving(user) {
 		room.SendText(fmt.Sprintf("< %s left the room. >", user), "")
 		room.clearUserLeaving(user)
@@ -400,28 +398,3 @@ func MessageLogHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 		}
 	}
 }
-
-// func SuttaCommandHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
-// 	data, err := ioutil.ReadFile("../suttaPaths.txt")
-// 	if err != nil {
-// 		room.errChan <- err
-// 		return
-// 	}
-// 	paths := strings.Split(string(data), "\n")
-// 	for {
-// 		select {
-// 		case packet := <-input:
-// 			if packet.Type != SendEventType {
-// 				continue
-// 			}
-// 			data := GetMessagePayload(&packet)
-// 			if data.Content == "!sutta" {
-// 				room.SendText(paths[rand.Uint32()%1234], data.ID)
-// 			}
-// 		case cmd := <-cmdChan:
-// 			if cmd == "kill" {
-// 				return
-// 			}
-// 		}
-// 	}
-// }

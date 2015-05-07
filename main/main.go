@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 	"runtime"
-	// "time"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/apologue-dot-net/maimai"
@@ -48,7 +48,7 @@ func main() {
 	defer logFile.Close()
 	logger.Out = logFile
 	logger.Level = logrus.DebugLevel
-	logger.Formatter = logrus.TextFormatter
+	logger.Formatter = logrus.JSONFormatter
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join, msgLog}
@@ -60,5 +60,9 @@ func main() {
 		room.SendAuth(password)
 	}
 	room.SendNick(roomCfg.Nick)
+	go func() {
+		time.Sleep(time.Minute)
+		logger.Debugln("Alive...")
+	}()
 	room.Run()
 }

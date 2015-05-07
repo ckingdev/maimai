@@ -85,6 +85,7 @@ func (ws *WSSenderReceiver) sender(outbound chan *PacketEvent) {
 	for {
 		select {
 		case msg := <-outbound:
+			ws.logger.Debugf("Sending packet of type %s", msg.Type)
 			if err := ws.sendJSON(msg); err != nil {
 				panic(err)
 			}
