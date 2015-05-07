@@ -319,7 +319,7 @@ func NickChangeHandler(room *Room, input chan PacketEvent, cmdChan chan string) 
 
 func partTimer(room *Room, user string) {
 	time.Sleep(time.Duration(60) * time.Second)
-	if room.isUserLeaving(user) {
+	if room.isUserLeaving(user) && user != "" {
 		room.SendText(fmt.Sprintf("< %s left the room. >", user), "")
 		room.clearUserLeaving(user)
 	}
@@ -355,6 +355,9 @@ func JoinEventHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 			case JoinEventType:
 				data := GetPresenceEventPayload(&packet)
 				user := data.User.Name
+				if user == "" {
+					continue
+				}
 				if !room.isUserLeaving(user) {
 					room.SendText(fmt.Sprintf("< %s joined the room. >", user), "")
 				}
