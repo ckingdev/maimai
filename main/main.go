@@ -51,15 +51,19 @@ func main() {
 	logger.Formatter = &logrus.JSONFormatter{}
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	roomCfg := &maimai.RoomConfig{nick, "", dbPath, logPath, join, msgLog}
+	roomCfg := &maimai.RoomConfig{
+		DBPath:       dbPath,
+		ErrorLogPath: logPath,
+		Join:         join,
+		MsgLog:       msgLog,
+		Nick:         nick,
+		Password:     password,
+	}
 	room, err := maimai.NewRoom(roomCfg, roomName, maimai.NewWSSenderReceiver(roomName, logger), logger)
 	if err != nil {
 		panic(err)
 	}
-	if password != "" {
-		room.SendAuth(password)
-	}
-	room.SendNick(roomCfg.Nick)
+	// room.SendNick(roomCfg.Nick)
 	go func() {
 		time.Sleep(time.Minute)
 		logger.Debugln("Alive...")

@@ -21,12 +21,13 @@ type roomData struct {
 
 // RoomConfig stores configuration options specific to a Room.
 type RoomConfig struct {
-	Nick         string
-	MsgPrefix    string
 	DBPath       string
 	ErrorLogPath string
 	Join         bool
 	MsgLog       bool
+	MsgPrefix    string
+	Nick         string
+	Password     string
 }
 
 // Room represents a connection to a euphoria room and associated data.
@@ -123,10 +124,10 @@ func (r *Room) sendPayload(payload interface{}, pType PacketType) {
 }
 
 // Auth sends an authentication packet with the given password.
-func (r *Room) SendAuth(password string) {
+func (r *Room) SendAuth() {
 	payload := AuthCommand{
 		Type:     "passcode",
-		Passcode: password}
+		Passcode: r.config.Password}
 	r.sendPayload(payload, AuthType)
 }
 
@@ -200,10 +201,10 @@ func (r *Room) dispatcher() {
 
 // Run provides a method for setup and the main loop that the bot will run with handlers.
 func (r *Room) Run() {
-	if err := r.sr.connect(); err != nil {
+	if err := r.sr.connect(r); err != nil {
 		r.Logger.Error("Could not connect to euphoria.")
 	}
-	go r.sr.start(r.inbound, r.outbound)
+	go r.sr.start(r, r.inbound, r.outbound)
 	r.dispatcher()
 }
 

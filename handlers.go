@@ -286,7 +286,7 @@ func DebugHandler(room *Room, input chan PacketEvent, cmdChan chan string) {
 				if !ok {
 					continue
 				}
-				room.Logger.Errorf("BounceEvent received, reason: %s", data.Reason)
+				room.Logger.Errorf("BounceEvent received, reason: %s and ID: %s", data.Reason, packet.ID)
 			}
 		case cmd := <-cmdChan:
 			if cmd == "kill" {

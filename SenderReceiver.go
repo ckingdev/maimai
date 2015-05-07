@@ -14,8 +14,8 @@ import (
 )
 
 type SenderReceiver interface {
-	connect() error
-	start(inbound chan *PacketEvent, outbound chan *PacketEvent)
+	connect(r *Room) error
+	start(r *Room, inbound chan *PacketEvent, outbound chan *PacketEvent)
 	stop()
 }
 
@@ -35,7 +35,7 @@ func NewWSSenderReceiver(room string, logger *logrus.Logger) *WSSenderReceiver {
 	}
 }
 
-func (ws *WSSenderReceiver) connectOnce() error {
+func (ws *WSSenderReceiver) connectOnce(r *Room) error {
 	ws.logger.Debug("Attempting connection...")
 	tlsConn, err := tls.Dial("tcp", "euphoria.io:443", &tls.Config{})
 	if err != nil {
@@ -56,23 +56,28 @@ func (ws *WSSenderReceiver) connectOnce() error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) connect() error {
-	if err := ws.connectOnce(); err != nil {
+func (ws *WSSenderReceiver) connect(r *Room) error {
+	if err := ws.connectOnce(r); err != nil {
 		for i := 0; i < 5; i++ {
 			time.Sleep(time.Duration(500) * time.Millisecond)
-			err = ws.connectOnce()
+			err = ws.connectOnce(r)
 			if err != nil {
 				break
 			}
 		}
 		return err
 	}
+	if r.config.Password != "" {
+		r.Logger.Debugln("Sending auth.")
+		r.SendAuth()
+	}
+	r.SendNick(r.config.Nick)
 	return nil
 }
 
-func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
+func (ws *WSSenderReceiver) sendJSON(r *Room, msg interface{}) error {
 	if err := ws.conn.WriteJSON(msg); err != nil {
-		if err = ws.connect(); err != nil {
+		if err = ws.connect(r); err != nil {
 			return err
 		}
 		err = ws.conn.WriteJSON(msg)
@@ -81,12 +86,12 @@ func (ws *WSSenderReceiver) sendJSON(msg interface{}) error {
 	return nil
 }
 
-func (ws *WSSenderReceiver) sender(outbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) sender(r *Room, outbound chan *PacketEvent) {
 	for {
 		select {
 		case msg := <-outbound:
-			ws.logger.Debugf("Sending packet of type %s", msg.Type)
-			if err := ws.sendJSON(msg); err != nil {
+			ws.logger.Debugf("Sending packet of type %s and ID %s", msg.Type, msg.ID)
+			if err := ws.sendJSON(r, msg); err != nil {
 				panic(err)
 			}
 		case <-ws.stopChan:
@@ -95,10 +100,10 @@ func (ws *WSSenderReceiver) sender(outbound chan *PacketEvent) {
 	}
 }
 
-func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
+func (ws *WSSenderReceiver) receiveMessage(r *Room) (*PacketEvent, error) {
 	_, msg, err := ws.conn.ReadMessage()
 	if err != nil {
-		if err = ws.connect(); err != nil {
+		if err = ws.connect(r); err != nil {
 			return &PacketEvent{}, err
 		}
 		_, msg, err = ws.conn.ReadMessage()
@@ -110,22 +115,22 @@ func (ws *WSSenderReceiver) receiveMessage() (*PacketEvent, error) {
 	if err = json.Unmarshal(msg, &packet); err != nil {
 		return &PacketEvent{}, fmt.Errorf("Error unmarshalling packet: %s", msg)
 	}
-	ws.logger.Debugf("Received packet of type %s", packet.Type)
+	ws.logger.Debugf("Received packet of type %s and ID %s", packet.Type, packet.ID)
 	return &packet, nil
 }
 
-func (ws *WSSenderReceiver) receivePacket(packetCh chan *PacketEvent) {
-	packet, err := ws.receiveMessage()
+func (ws *WSSenderReceiver) receivePacket(r *Room, packetCh chan *PacketEvent) {
+	packet, err := ws.receiveMessage(r)
 	if err != nil {
 		panic(err)
 	}
 	packetCh <- packet
 }
 
-func (ws *WSSenderReceiver) receiver(inbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) receiver(r *Room, inbound chan *PacketEvent) {
 	for {
 		packetCh := make(chan *PacketEvent)
-		go ws.receivePacket(packetCh)
+		go ws.receivePacket(r, packetCh)
 		select {
 		case packet := <-packetCh:
 			inbound <- packet
@@ -135,16 +140,16 @@ func (ws *WSSenderReceiver) receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (ws *WSSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+func (ws *WSSenderReceiver) start(r *Room, inbound chan *PacketEvent, outbound chan *PacketEvent) {
 	ws.wg.Add(1)
 	go func() {
 		defer ws.wg.Done()
-		ws.receiver(inbound)
+		ws.receiver(r, inbound)
 	}()
 	ws.wg.Add(1)
 	go func() {
 		defer ws.wg.Done()
-		ws.sender(outbound)
+		ws.sender(r, outbound)
 	}()
 }
 
