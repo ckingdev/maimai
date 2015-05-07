@@ -24,11 +24,11 @@ func NewMockSR(room string) *MockSenderReceiver {
 	return &MockSenderReceiver{outbound, inbound, false, room, sync.WaitGroup{}}
 }
 
-func (m *MockSenderReceiver) connect() error {
+func (m *MockSenderReceiver) connect(r *Room) error {
 	return nil
 }
 
-func (m *MockSenderReceiver) sender(outbound chan *PacketEvent) {
+func (m *MockSenderReceiver) sender(r *Room, outbound chan *PacketEvent) {
 	for {
 		if m.stopFlag {
 			return
@@ -38,7 +38,7 @@ func (m *MockSenderReceiver) sender(outbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) receiver(inbound chan *PacketEvent) {
+func (m *MockSenderReceiver) receiver(r *Room, inbound chan *PacketEvent) {
 	for {
 		if m.stopFlag {
 			return
@@ -52,16 +52,16 @@ func (m *MockSenderReceiver) receiver(inbound chan *PacketEvent) {
 	}
 }
 
-func (m *MockSenderReceiver) start(inbound chan *PacketEvent, outbound chan *PacketEvent) {
+func (m *MockSenderReceiver) start(r *Room, inbound chan *PacketEvent, outbound chan *PacketEvent) {
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.receiver(inbound)
+		m.receiver(r, inbound)
 	}()
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		m.sender(outbound)
+		m.sender(r, outbound)
 	}()
 }
 
@@ -76,7 +76,13 @@ type TestHarness struct {
 }
 
 func NewTestHarness(t *testing.T) (*Room, *TestHarness) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
+	roomCfg := &RoomConfig{
+		DBPath:       "test.db",
+		ErrorLogPath: "test.log",
+		Join:         true,
+		MsgLog:       true,
+		Nick:         "MaiMai",
+	}
 	mockSR := NewMockSR("test")
 	room, err := NewRoom(roomCfg, "test", mockSR, logrus.New())
 	if err != nil {
@@ -193,7 +199,7 @@ func (th *TestHarness) SendPresenceEvent(ptype PacketType, name string) {
 func TestConnect(t *testing.T) {
 	room, _ := NewTestHarness(t)
 	defer room.db.Close()
-	if err := room.sr.connect(); err != nil {
+	if err := room.sr.connect(room); err != nil {
 		t.Fatal("Could not connect to mock interface.")
 	}
 }
@@ -313,7 +319,13 @@ func TestWS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping test in short mode.")
 	}
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
+	roomCfg := &RoomConfig{
+		DBPath:       "test.db",
+		ErrorLogPath: "test.log",
+		Join:         true,
+		MsgLog:       true,
+		Nick:         "MaiMai",
+	}
 	room, err := NewRoom(roomCfg, "test", NewWSSenderReceiver("test", logrus.New()), logrus.New())
 	if err != nil {
 		panic(err)
@@ -365,7 +377,13 @@ func TestPart(t *testing.T) {
 }
 
 func TestBadWS(t *testing.T) {
-	roomCfg := &RoomConfig{"MaiMai", "", "test.db", "test.log", true, true}
+	roomCfg := &RoomConfig{
+		DBPath:       "test.db",
+		ErrorLogPath: "test.log",
+		Join:         true,
+		MsgLog:       true,
+		Nick:         "MaiMai",
+	}
 	room, err := NewRoom(roomCfg, "test/bad/room", NewWSSenderReceiver("test/bad/room", logrus.New()), logrus.New())
 	if err != nil {
 		panic(err)
@@ -379,7 +397,8 @@ func TestSendAuth(t *testing.T) {
 	room, th := NewTestHarness(t)
 	defer room.db.Close()
 	defer room.Stop()
+	room.config.Password = "test"
 	go room.Run()
-	room.SendAuth("test")
+	room.SendAuth()
 	th.AssertReceivedAuth()
 }
