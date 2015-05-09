@@ -59,7 +59,7 @@ func (ws *WSSenderReceiver) connectOnce(r *Room) error {
 func (ws *WSSenderReceiver) connect(r *Room) error {
 	if err := ws.connectOnce(r); err != nil {
 		for i := 0; i < 5; i++ {
-			time.Sleep(time.Duration(500) * time.Millisecond)
+			time.Sleep(time.Duration(i+1) * time.Second * 3)
 			err = ws.connectOnce(r)
 			if err != nil {
 				break
