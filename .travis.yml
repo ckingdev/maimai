@@ -1,12 +1,17 @@
 language: go
 
 go:
-  - tip
+  - 1.3
 
 install:
   - go get github.com/gorilla/websocket
-  - go get code.google.com/p/go.tools/cmd/cover
+  - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - go get github.com/boltdb/bolt
+  - go get golang.org/x/net/html
+  - go get github.com/Sirupsen/logrus
 
-script: go test -v -covermode=count -coverprofile=coverage.out
-$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken t1b6Pl6AVOGBcg19maIp8g66B05JUDig7
+script: 
+  - go test -v -covermode=count -coverprofile=coverage.out 
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken Kc4jY00hJde2udvoxSz3ncOW7BZr6tuRm
+
