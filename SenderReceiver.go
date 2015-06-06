@@ -67,11 +67,11 @@ func (ws *WSSenderReceiver) connect(r *Room) error {
 		}
 		return err
 	}
+	r.SendNick(r.config.Nick)
 	if r.config.Password != "" {
 		r.Logger.Debugln("Sending auth.")
 		r.SendAuth()
 	}
-	r.SendNick(r.config.Nick)
 	return nil
 }
 
