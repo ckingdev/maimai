@@ -92,9 +92,9 @@ func (ws *WSSenderReceiver) sender(r *Room, outbound chan *PacketEvent) {
 	for {
 		select {
 		case msg := <-outbound:
-			if msg.Type != PingReplyType {
+//			if msg.Type != PingReplyType {
 				r.Logger.Debugf("Sending packet of type %s and ID %s", msg.Type, msg.ID)
-			}
+		//	}
 			if err := ws.sendJSON(r, msg); err != nil {
 				panic(err)
 			}
@@ -119,9 +119,9 @@ func (ws *WSSenderReceiver) receiveMessage(r *Room) (*PacketEvent, error) {
 	if err = json.Unmarshal(msg, &packet); err != nil {
 		return &PacketEvent{}, fmt.Errorf("Error unmarshalling packet: %s", msg)
 	}
-	if packet.Type != PingEventType {
+	//if packet.Type != PingEventType {
 		r.Logger.Debugf("Received packet of type %s and ID %s", packet.Type, packet.ID)
-	}
+	//}
 	return &packet, nil
 }
 
