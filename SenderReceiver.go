@@ -71,6 +71,7 @@ func (ws *WSSenderReceiver) connect(r *Room) error {
 		r.Logger.Debugln("Sending auth.")
 		r.SendAuth()
 	}
+	time.Sleep(time.Second)
 	r.Logger.Debugln("Sending nick.")
 	r.SendNick(r.config.Nick)
 	return nil
