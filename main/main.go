@@ -4,10 +4,10 @@ import (
 	"flag"
 	"os"
 	"runtime"
-	"time"
+
+	"github.com/cpalone/maimai"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/apologue-dot-net/maimai"
 )
 
 var roomName string
@@ -63,10 +63,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// room.SendNick(roomCfg.Nick)
-	go func() {
-		time.Sleep(time.Minute)
-		logger.Debugln("Alive...")
-	}()
 	room.Run()
 }
