@@ -61,11 +61,13 @@ func (ws *WSSenderReceiver) connect(r *Room) error {
 		for i := 0; i < 5; i++ {
 			time.Sleep(time.Duration(i+1) * time.Second * 10)
 			err = ws.connectOnce(r)
-			if err != nil {
+			if err == nil {
 				break
 			}
 		}
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	if r.config.Password != "" {
 		r.Logger.Debugln("Sending auth.")
